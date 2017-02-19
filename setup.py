@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='flickrsync',
-    version='0.1.0rc1',
+    version='0.1.0rc2',
     description='A command line tool to backup local photos to Flickr',
     url='https://github.com/danchal/flickrsync',
     author='Dan Chal',
