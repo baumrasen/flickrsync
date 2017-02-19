@@ -231,7 +231,7 @@ def main():
 
         parser.add_argument("--auth", help = "authenticate with Flickr", action = "store_true")
         parser.add_argument("--sync", help = "perform a one way sync from the local file system to Flickr", action = "store_true")
-        parser.add_argument("--sync2", help = "perform a two way sync between the local file system to Flickr", action = "store_true")
+        parser.add_argument("--sync2", help = "perform a two way sync between the local file system and Flickr", action = "store_true")
         parser.add_argument("--photosets", help = "create Flickr photosets based upon the local file system", action = "store_true")
         parser.add_argument("--delete", help = "delete the database tables", action = "store_true")
         parser.add_argument("--rebase", help = "rebase the Flickr database table", action = "store_true")
