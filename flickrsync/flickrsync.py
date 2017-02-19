@@ -173,11 +173,11 @@ def _download_missing_photos_from_flickr(database, directory, dryrun=True, nopro
         logger.info('No photos to download')
 
                 
-def _download_and_scan_unmatched_flickr_photos(database, flickr, directory, dryrun=True, noprompt=False):
-    flickrphotos = database.select_unmatched_flickr_photos()
+def _download_and_scan_unidentifiable_flickr_photos(database, flickr, directory, dryrun=True, noprompt=False):
+    flickrphotos = database.select_unidentifiable_flickr_photos()
 
     if flickrphotos:
-        if noprompt or general.query_yes_no('Do you want to download and scan <%d> unmatched files from Flickr' % len(flickrphotos)):
+        if noprompt or general.query_yes_no('Do you want to download and scan <%d> unidentifiable pictures from Flickr' % len(flickrphotos)):
             local.download_photos(directory=directory, flickrphotos=flickrphotos, dryrun=dryrun)
             search_local(database, directory, noprompt=True)
 
@@ -191,9 +191,9 @@ def _download_and_scan_unmatched_flickr_photos(database, flickr, directory, dryr
         logger.info('No unmatched Flickr photos found')
 
 def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=False):
-    procs = []
-
     if noprompt or general.query_yes_no('Do you want to sync the local file system with Flickr'):
+        procs = []
+        
         proc = multiprocessing.Process(target = search_local(database, directory, noprompt=True), args = ())
         procs.append(proc)
         proc.start()
@@ -206,7 +206,7 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
             proc.join(7200)  # only block for this amount of time
         database.do_commit()
 
-        _download_and_scan_unmatched_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
+        _download_and_scan_unidentifiable_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
         database.do_commit()
 
         uploaded_count = _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
