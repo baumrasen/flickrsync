@@ -2,7 +2,7 @@
 FlickrSync
 ==========
 
-A command line tool to synchronise pictures from the local file system to Flickr
+A command line tool to synchronise pictures between the local file system and Flickr
 
     | https://github.com/danchal/flickrsync
     | https://pypi.python.org/pypi/flickrsync
