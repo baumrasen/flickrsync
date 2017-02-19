@@ -8,8 +8,7 @@ from flickrsync.error import Error
 logger = logging.getLogger(Log.NAME)
 
 class Database:
-    DATE_MATCHED = 1
-
+    
     def __init__(self, database):
         logger.debug('database<%s>' % database)
         assert(database), 'Database is <%s>' % database
@@ -231,6 +230,10 @@ class Database:
                                        pr.ShortName = pl.ShortName
                                    AND pr.DateFlat = pl.DateFlat
                                    AND pr.DateTakenUnknown = 0)
+                                OR (
+                                        pr.Id = pl.FlickrId
+                                    AND pr.OriginalSecret = pl.FlickrSecret
+                                )
                             )
                         AND pl.Deleted IS NULL
                         AND pl.ImageError IS NULL
@@ -304,6 +307,14 @@ class Database:
                             FROM LocalPhotos pl
                             WHERE Signature IS NOT NULL
                             AND Deleted IS NULL
+                            AND pl.FlickrId = pr.Id
+                            AND pl.FlickrSecret = pr.OriginalSecret
+                        )
+                        AND NOT EXISTS(
+                            SELECT 1
+                            FROM LocalPhotos pl
+                            WHERE Signature IS NOT NULL
+                            AND Deleted IS NULL
                             AND pl.DateFlat = pr.DateFlat
                             AND pl.ShortName = pr.ShortName
                             AND pr.DateTakenUnknown = 0
@@ -317,7 +328,7 @@ class Database:
 
         return rows
 
-    def select_unmatched_flickr_photos(self):
+    def select_unidentifiable_flickr_photos(self):
         sqlstring = ("""SELECT *
                         FROM FlickrPhotos pr
                         WHERE pr.Signature IS NULL
