@@ -191,9 +191,9 @@ def _download_and_scan_unidentifiable_flickr_photos(database, flickr, directory,
         logger.info('No unmatched Flickr photos found')
 
 def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=False):
-    procs = []
-
     if noprompt or general.query_yes_no('Do you want to sync the local file system with Flickr'):
+        procs = []
+        
         proc = multiprocessing.Process(target = search_local(database, directory, noprompt=True), args = ())
         procs.append(proc)
         proc.start()
