@@ -227,7 +227,7 @@ class Flickr:
                     notcomplete.append(ticket.get('id'))
 
             if len(notcomplete):
-                logger.info('notcomplete<%d>' % len(notcomplete))
+                logger.info('waiting to complete uploading of <%d> pictures' % len(notcomplete))
                 time.sleep(5)
             else:
                 completed = True

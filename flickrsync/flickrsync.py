@@ -31,7 +31,7 @@ def _commit_photos(database, photos):
     database.do_commit()
     logger.info('Added <%d> new photos' % len(photos))
 
-def search_local(database, directory, noprompt=False):
+def _search_local(database, directory):
     allfiles = database.select_all_local_photos()
     deletedfiles = local.search_deleted(allfiles)
 
@@ -47,24 +47,23 @@ def search_local(database, directory, noprompt=False):
 
         if newfiles :
             logger.info('New files found <%s>' % len(newfiles))
+            
+            with multiprocessing.Pool() as pool:
 
-            if noprompt or general.query_yes_no('Scan <%s> new files?' % len(newfiles)):
-                with multiprocessing.Pool() as pool:
+                # not able to use the sqlite.row_factory type with map
+                # convert to tuple list
+                it = pool.imap_unordered(local.image_worker, general.tuple_list_from_rows(newfiles))
 
-                    # not able to use the sqlite.row_factory type with map
-                    # convert to tuple list
-                    it = pool.imap_unordered(local.image_worker, general.tuple_list_from_rows(newfiles))
+                photos = []
+                for photo in it:
 
-                    photos = []
-                    for photo in it:
+                    photos.append(photo)
 
-                        photos.append(photo)
+                    if len(photos) >= COMMIT_SIZE:
+                        _commit_photos(database, photos)
+                        photos.clear()
 
-                        if len(photos) >= COMMIT_SIZE:
-                            _commit_photos(database, photos)
-                            photos.clear()
-
-                    _commit_photos(database, photos)
+                _commit_photos(database, photos)
         else:
             logger.info('No new files found')
 
@@ -80,7 +79,7 @@ def _get_flickr_photosets(database, flickr):
         database.insert_flickr_photosets(photosets)
 
     else:
-        logger.warning('No flickr photoSets found')
+        logger.info('No flickr photoSets found')
 
     return photosets
 
@@ -123,23 +122,22 @@ def create_photosets(database, flickr, rootpath, noprompt=False):
     else:
         logger.info('No local photo directories found')
 
-def search_flickr(database, flickr, rebase=False, noprompt=False):
-    if noprompt or general.query_yes_no('Search Flickr?'):
-        lastuploaddate = 0 if rebase else database.select_last_upload_date()
-        photos = flickr.get_photos(lastuploaddate + 1)
+def _search_flickr(database, flickr, rebase=False):
+    lastuploaddate = 0 if rebase else database.select_last_upload_date()
+    photos = flickr.get_photos(lastuploaddate + 1)
 
-        if photos :
-            logger.info('Found new photos on Flickr <%d>' % len(photos))
-            database.insert_flickr_photos(photos)
-        else:
-            humandate = datetime.datetime.fromtimestamp(lastuploaddate).strftime('%Y-%m-%d %H:%M:%S')
-            logger.info('No new photos found on Flickr since the last upload date <%s>' % humandate)
+    if photos :
+        logger.info('Found new photos on Flickr <%d>' % len(photos))
+        database.insert_flickr_photos(photos)
+    else:
+        humandate = datetime.datetime.fromtimestamp(lastuploaddate).strftime('%Y-%m-%d %H:%M:%S')
+        logger.info('No new photos found on Flickr since the last upload date <%s>' % humandate)
 
 def rebase_flickr(database, flickr, noprompt=False):
     if noprompt or general.query_yes_no('Rebase the Flickr database?', default='no'):
         database.drop_flickr_photos_table()
         database.create_flickr_photos_table()
-        search_flickr(database, flickr, rebase=True, noprompt=True)
+        _search_flickr(database, flickr, rebase=True)
 
 def _do_upload(database, flickr, directory, dryrun=True, noprompt=False):
     uploadphotos = database.select_photos_for_upload()
@@ -168,7 +166,7 @@ def _download_missing_photos_from_flickr(database, directory, dryrun=True, nopro
     if flickrphotos:
         if noprompt or general.query_yes_no('Do you want to download <%d> missing photos from Flickr' % len(flickrphotos)):
             local.download_photos(directory=directory, flickrphotos=flickrphotos, dryrun=dryrun)
-            search_local(database, directory, noprompt=True)
+            _search_local(database, directory)
     else:
         logger.info('No photos to download')
 
@@ -179,14 +177,14 @@ def _download_and_scan_unidentifiable_flickr_photos(database, flickr, directory,
     if flickrphotos:
         if noprompt or general.query_yes_no('Do you want to download and scan <%d> unidentifiable pictures from Flickr' % len(flickrphotos)):
             local.download_photos(directory=directory, flickrphotos=flickrphotos, dryrun=dryrun)
-            search_local(database, directory, noprompt=True)
+            _search_local(database, directory)
 
             localphotos = database.select_unmatched_photos_with_flickr_id()
 
             for localphoto in localphotos:
                 flickr.add_tags(localphoto['flickrid'], flickr.get_signature_tag(localphoto['signature']), dryrun=dryrun)
 
-            search_flickr(database, flickr, noprompt=True)
+            _search_flickr(database, flickr)
     else:
         logger.info('No unmatched Flickr photos found')
 
@@ -194,11 +192,11 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
     if noprompt or general.query_yes_no('Do you want to sync the local file system with Flickr'):
         procs = []
         
-        proc = multiprocessing.Process(target = search_local(database, directory, noprompt=True), args = ())
+        proc = multiprocessing.Process(target = _search_local(database, directory), args = ())
         procs.append(proc)
         proc.start()
 
-        proc = multiprocessing.Process(target = search_flickr(database, flickr, noprompt=True), args = ())
+        proc = multiprocessing.Process(target = _search_flickr(database, flickr), args = ())
         procs.append(proc)
         proc.start()
 
@@ -212,7 +210,7 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
         uploaded_count = _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
         if uploaded_count > 0:
-            search_flickr(database, flickr, noprompt=True)
+            _search_flickr(database, flickr)
             
         if twoway:
             _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
@@ -236,8 +234,6 @@ def main():
         parser.add_argument("--sync2", help = "perform a two way sync between the local file system to Flickr", action = "store_true")
         parser.add_argument("--photosets", help = "create Flickr photosets based upon the local file system", action = "store_true")
         parser.add_argument("--delete", help = "delete the database tables", action = "store_true")
-        parser.add_argument("--local", help = "search local filesystem", action = "store_true")
-        parser.add_argument("--flickr", help = "search Flickr", action = "store_true")
         parser.add_argument("--rebase", help = "rebase the Flickr database table", action = "store_true")
         parser.add_argument("--debug", help = "enable debug logging", action = "store_true")
         parser.add_argument("--dryrun", help = "do not actually upload/download, perform a dry run", action = "store_true")
@@ -266,25 +262,18 @@ def main():
 
         if args.delete:
             delete_tables(database, noprompt=args.noprompt)
-
-        if args.local:
-            search_local(database, settings.directory, noprompt=args.noprompt)
-
-        if args.rebase:
+        
+        elif args.rebase:
             rebase_flickr(database, flickr, noprompt=args.noprompt)
-
-        if args.flickr:
-            search_flickr(database, flickr, noprompt=args.noprompt)
-
-        if args.photosets:
-            search_flickr(database, flickr, noprompt=args.noprompt)
-            create_photosets(database, flickr, settings.directory, noprompt=args.noprompt)
-
+        
         if args.sync:
             do_sync(database, flickr, settings.directory, twoway=False, dryrun=args.dryrun, noprompt=args.noprompt)
             
         elif args.sync2:
             do_sync(database, flickr, settings.directory, twoway=True, dryrun=args.dryrun, noprompt=args.noprompt)
+
+        if args.photosets:
+            create_photosets(database, flickr, settings.directory, noprompt=args.noprompt)
             
         database.con.close()
 
