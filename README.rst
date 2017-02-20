@@ -25,6 +25,9 @@ Install
     $ sudo apt install python3-wand
     $ sudo pip3 install flickrsync
 
+| For Windows / Mac installation help:
+| http://docs.wand-py.org/en/0.4.4/guide/install.html
+
 References
 ==========
 
