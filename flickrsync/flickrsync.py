@@ -225,9 +225,9 @@ def main():
         parser.add_argument("-c", "--config", type = str, help = "config file location")
         parser.add_argument("-p", "--profile", type = str, help = "config profile section")
 
-        parser.add_argument("-u", "--username", type = str, help = "Flickr username")
-        parser.add_argument("-d", "--database", type = str, help = "FlickrSync database location")
-        parser.add_argument("-l", "--directory", type = str, help = "local picture directory")
+        parser.add_argument("-u", "--username", type = str, help = "config Flickr username, overrides the config file")
+        parser.add_argument("-d", "--database", type = str, help = "FlickrSync database location, overrides the config file")
+        parser.add_argument("-l", "--directory", type = str, help = "local picture directory, overrides the config file")
 
         parser.add_argument("--auth", help = "authenticate with Flickr", action = "store_true")
         parser.add_argument("--sync", help = "perform a one way sync from the local file system to Flickr", action = "store_true")
