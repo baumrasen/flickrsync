@@ -60,7 +60,7 @@ Usage
     To perform a one way sync from the local file system to Flickr
     $ flickrsync --sync
 
-    To perform a two way sync between the local file system to Flickr
+    To perform a two way sync between the local file system and Flickr
     $ flickrsync --sync2
 
     To create Flickr photosets based upon the local file system
