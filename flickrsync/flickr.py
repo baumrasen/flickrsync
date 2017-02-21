@@ -199,7 +199,7 @@ class Flickr:
         return countdeleted
 
     def add_tags(self, id, tags, dryrun=True):
-        logger.info('<{id}>, <{tags}'.format(id=id, tags=tags))
+        logger.info('Adding tag to Flickr photo<{id}>, <{tags}'.format(id=id, tags=tags))
         if dryrun:
             logger.info('Dry run, not adding tag')
         else:
