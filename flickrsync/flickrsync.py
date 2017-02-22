@@ -3,6 +3,7 @@ import argparse
 import os
 import sys
 import multiprocessing
+import threading
 import logging
 import traceback
 import datetime
@@ -122,22 +123,22 @@ def create_photosets(database, flickr, rootpath, noprompt=False):
     else:
         logger.info('No local photo directories found')
 
-def _search_flickr(database, flickr, rebase=False):
-    lastuploaddate = 0 if rebase else database.select_last_upload_date()
-    photos = flickr.get_photos(lastuploaddate + 1)
+def _search_flickr(database, flickr, minuploaddate=-1):
+    minuploaddate = minuploaddate if minuploaddate>=0 else (database.select_last_upload_date() + 1)
+    photos = flickr.get_photos(minuploaddate)
 
     if photos :
         logger.info('Found new photos on Flickr <%d>' % len(photos))
         database.insert_flickr_photos(photos)
     else:
-        humandate = datetime.datetime.fromtimestamp(lastuploaddate).strftime('%Y-%m-%d %H:%M:%S')
+        humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime('%Y-%m-%d %H:%M:%S')
         logger.info('No new photos found on Flickr since the last upload date <%s>' % humandate)
 
 def rebase_flickr(database, flickr, noprompt=False):
     if noprompt or general.query_yes_no('Rebase the Flickr database?', default='no'):
         database.drop_flickr_photos_table()
         database.create_flickr_photos_table()
-        _search_flickr(database, flickr, rebase=True)
+        _search_flickr(database, flickr, minuploaddate=0)
 
 def _do_upload(database, flickr, directory, dryrun=True, noprompt=False):
     uploadphotos = database.select_photos_for_upload()
@@ -153,6 +154,9 @@ def _do_upload(database, flickr, directory, dryrun=True, noprompt=False):
         if uploadphotos:
             if noprompt or general.query_yes_no('Upload <%d> pictures to Flickr?' % len(uploadphotos)):
                 passed, failed = flickr.upload_photos(uploadphotos)
+
+                if passed > 0:
+                    _search_flickr(database, flickr)
         else:
             logger.info('No photos to upload')
 
@@ -185,6 +189,7 @@ def _add_tags(flickr, localphotos, dryrun=True):
             flickr.add_tags(id, signature)
 
 def _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=True, noprompt=False, nodatematch=False):
+    success = False
     flickrphotos = database.select_unmatchable_flickr_photos(nodatematch)
 
     if flickrphotos:
@@ -199,36 +204,41 @@ def _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dr
                     _add_tags(flickr, localphotos, dryrun=dryrun)
 
                 finally:
-                    _search_flickr(database, flickr, rebase=True)
+                    minuploaddate = database.select_min_upload_date_without_signature()
+                    _search_flickr(database, flickr, minuploaddate=minuploaddate)
+                    success = True
     else:
         logger.info('No unmatchable Flickr photos found')
+        success = True
+
+    logger.info('Scan<{success}>'.format(success='success' if success else 'aborted'))
+    return success
 
 def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=False, nodatematch=False):
     if noprompt or general.query_yes_no('Do you want to sync the local file system with Flickr'):
-        procs = []
+        threads = []
 
-        proc = multiprocessing.Process(target = _search_local(database, directory), args = ())
-        procs.append(proc)
-        proc.start()
+        thread = threading.Thread(target = _search_flickr(database, flickr), args = ())
+        threads.append(thread)
 
-        proc = multiprocessing.Process(target = _search_flickr(database, flickr), args = ())
-        procs.append(proc)
-        proc.start()
+        thread = threading.Thread(target = _search_local(database, directory), args = ())
+        threads.append(thread)
 
-        for proc in procs:
-            proc.join(7200)  # only block for this amount of time
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
         database.do_commit()
 
-        _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch)
-        database.do_commit()
+        if _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch):
+            database.do_commit()
 
-        uploaded_count = _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
+            uploaded_count = _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
-        if uploaded_count > 0:
-            _search_flickr(database, flickr)
-
-        if twoway:
-            _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
+            if twoway:
+                _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
 
 def main():
     try:
@@ -279,7 +289,7 @@ def main():
         if args.delete:
             delete_tables(database, noprompt=args.noprompt)
 
-        elif args.rebase:
+        if args.rebase:
             rebase_flickr(database, flickr, noprompt=args.noprompt)
 
         if args.sync:

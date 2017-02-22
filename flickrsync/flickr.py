@@ -112,7 +112,7 @@ class Flickr:
 
         except flickrapi.exceptions.FlickrError as e:
             raise Error(e)
-    
+
     def upload_photos(self, uploadphotos):
         passed = 0
         failed = 0
@@ -208,7 +208,7 @@ class Flickr:
     @staticmethod
     def get_signature_tag(signature):
         return '{machine_tag_signature}="{signature}"'.format(machine_tag_signature=Flickr.MACHINE_TAG_SIGNATURE, signature=signature)
-    
+
     def __wait_until_uploading_complete(self, tickets):
         completed = False
         notcomplete = list(tickets)
@@ -228,7 +228,7 @@ class Flickr:
                 time.sleep(5)
             else:
                 completed = True
-    
+
     @staticmethod
     def __get_signature(machinetags):
         thesignature = None
