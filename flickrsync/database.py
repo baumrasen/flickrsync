@@ -249,40 +249,31 @@ class Database:
 
     def select_photos_for_upload(self):
         sqlstring = ("""SELECT *
-                        FROM LocalPhotos pl
-                        WHERE Signature IS NOT NULL
-                        AND Deleted IS NULL
-                        AND ROWID IN(
-                            SELECT ROWID
-                            FROM LocalPhotos
-                            GROUP BY Signature
-                            HAVING MIN(IFNULL(DateFlat, 99999999999999))
-                        )
-                        AND ROWID IN(
-                            SELECT ROWID
-                            FROM LocalPhotos
-                            GROUP BY ShortName, DateFlat
-                            HAVING MIN(IFNULL(DateFlat, 99999999999999))
-                        )
-                        AND Signature NOT IN(
+                        FROM LocalPhotos l
+                        WHERE l.Signature IS NOT NULL
+                        AND l.Deleted IS NULL
+                        AND l.Signature NOT IN(
                             SELECT Signature
-                            FROM FlickrPhotos pr
-                            WHERE Signature IS NOT NULL
+                            FROM LocalPhotos pl
+                            WHERE EXISTS(
+                                SELECT 1
+                                FROM FlickrPhotos pr
+                                WHERE pr.Signature = pl.Signature
+                                UNION
+                                SELECT 1
+                                FROM FlickrPhotos pr
+                                WHERE pr.Id = pl.FlickrId
+                                AND pr.OriginalSecret = pl.FlickrSecret
+                                UNION
+                                SELECT 1
+                                FROM FlickrPhotos pr
+                                WHERE pr.ShortName = pl.ShortName
+                                AND pr.DateFlat = pl.DateFlat
+                                AND pr.DateTakenUnknown = 0
+                            )
                         )
-                        AND NOT EXISTS(
-                            SELECT 1
-                            FROM FlickrPhotos pr
-                            WHERE pr.Id = pl.FlickrId
-                            AND pr.OriginalSecret = pl.FlickrSecret
-                        )
-                        AND NOT EXISTS(
-                            SELECT 1
-                            FROM FlickrPhotos pr
-                            WHERE pr.ShortName = pl.ShortName
-                            AND pr.DateFlat = pl.DateFlat
-                            AND pr.DateTakenUnknown = 0
-                        )
-                        ORDER BY pl.Directory, pl.FileName""")
+                        GROUP BY l.Signature
+                        HAVING MIN(IFNULL(l.DateFlat, 99999999999999))""")
 
         with self.con:
             cur = self.con.execute(sqlstring)
@@ -328,11 +319,27 @@ class Database:
 
         return rows
 
-    def select_unidentifiable_flickr_photos(self):
+    def select_unmatchable_flickr_photos(self):
         sqlstring = ("""SELECT *
                         FROM FlickrPhotos pr
-                        WHERE pr.Signature IS NULL
-                        AND pr.DateTakenUnknown = 1""")
+                        WHERE Signature IS NULL
+                        AND NOT EXISTS(
+                            SELECT 1
+                            FROM LocalPhotos pl
+                            WHERE Signature IS NOT NULL
+                            AND Deleted IS NULL
+                            AND pl.FlickrId = pr.Id
+                            AND pl.FlickrSecret = pr.OriginalSecret
+                        )
+                        AND NOT EXISTS(
+                            SELECT 1
+                            FROM LocalPhotos pl
+                            WHERE Signature IS NOT NULL
+                            AND Deleted IS NULL
+                            AND pl.DateFlat = pr.DateFlat
+                            AND pl.ShortName = pr.ShortName
+                            AND pr.DateTakenUnknown = 0
+                        )""")
 
         with self.con:
             cur = self.con.execute(sqlstring)

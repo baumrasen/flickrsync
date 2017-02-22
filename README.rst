@@ -25,6 +25,9 @@ Install
     $ sudo apt install python3-wand
     $ sudo pip3 install flickrsync
 
+| For Windows / Mac installation help:
+| http://docs.wand-py.org/en/0.4.4/guide/install.html
+
 References
 ==========
 
@@ -96,7 +99,7 @@ Sync Process
 #. Creates an index of pictures on Flickr.
 #. Identify duplicate pictures on local file system.
 #. Match local pictures to Flickr.
-#. Download and scan unmatched Flickr pictures.
+#. Download and scan unmatchable Flickr pictures.
 #. Upload unmatched local pictures to Flickr.
 #. Download pictures from Flickr that are missing on the local file system.
 #. Create Flickr photosets based upon the original filepath of the picture.
