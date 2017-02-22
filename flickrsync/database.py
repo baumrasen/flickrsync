@@ -249,10 +249,10 @@ class Database:
 
     def select_photos_for_upload(self):
         sqlstring = ("""SELECT *
-                        FROM LocalPhotos pl
-                        WHERE Signature IS NOT NULL
-                        AND Deleted IS NULL
-                        AND Signature NOT IN(
+                        FROM LocalPhotos l
+                        WHERE l.Signature IS NOT NULL
+                        AND l.Deleted IS NULL
+                        AND l.Signature NOT IN(
                             SELECT Signature
                             FROM LocalPhotos pl
                             WHERE EXISTS(
@@ -272,8 +272,8 @@ class Database:
                                 AND pr.DateTakenUnknown = 0
                             )
                         )
-                        GROUP BY Signature
-                        HAVING MIN(IFNULL(DateFlat, 99999999999999))""")
+                        GROUP BY l.Signature
+                        HAVING MIN(IFNULL(l.DateFlat, 99999999999999))""")
 
         with self.con:
             cur = self.con.execute(sqlstring)
