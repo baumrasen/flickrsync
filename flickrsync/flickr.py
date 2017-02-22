@@ -112,7 +112,7 @@ class Flickr:
 
         except flickrapi.exceptions.FlickrError as e:
             raise Error(e)
-    
+
     def upload_photos(self, uploadphotos):
         passed = 0
         failed = 0
@@ -147,7 +147,7 @@ class Flickr:
         try:
             newphotoset = self.api.photosets.create(title = photosetname, description = Flickr.PHOTOSET_DESCRIPTION, primary_photo_id = primaryphotoid)
         except flickrapi.exceptions.FlickrError as e:
-            raise Error(e)
+            logger.error(e)
 
         photosetid = newphotoset.find('photoset').attrib['id']
         logger.info('created new photosetid<%s>, <%s>' % (photosetid, photosetname))
@@ -165,7 +165,7 @@ class Flickr:
             self.api.photosets.editPhotos(photoset_id = photosetid, primary_photo_id = primaryphotoid, photo_ids = photoscsv)
 
         except flickrapi.exceptions.FlickrError as e:
-            raise Error(e)
+            logger.error(e)
 
     def delete_unused_photosets(self, photosetsused, photosets):
         assert(photosetsused), 'photosetsused<%s>' % photosetsused
@@ -187,7 +187,7 @@ class Flickr:
                 try:
                     self.api.photosets.delete(photoset_id = photoset['id'])
                 except flickrapi.exceptions.FlickrError as e:
-                    raise Error(e)
+                    logger.error(e)
 
                 logger.info('deleted photoset[id]<%s>' % photoset['id'])
                 countdeleted += 1
@@ -198,20 +198,17 @@ class Flickr:
         logger.info('photosets deleted<%d>' % countdeleted)
         return countdeleted
 
-    def add_tags(self, id, tags, dryrun=True):
+    def add_tags(self, id, tags):
         logger.info('Adding tag to Flickr photo<{id}>, <{tags}'.format(id=id, tags=tags))
-        if dryrun:
-            logger.info('Dry run, not adding tag')
-        else:
-            try:
-                self.api.photos.addTags(photo_id=id, tags=tags)
-            except flickrapi.exceptions.FlickrError as e:
-                raise Error(e)
+        try:
+            self.api.photos.addTags(photo_id=id, tags=tags)
+        except flickrapi.exceptions.FlickrError as e:
+            logger.error(e)
 
     @staticmethod
     def get_signature_tag(signature):
         return '{machine_tag_signature}="{signature}"'.format(machine_tag_signature=Flickr.MACHINE_TAG_SIGNATURE, signature=signature)
-    
+
     def __wait_until_uploading_complete(self, tickets):
         completed = False
         notcomplete = list(tickets)
@@ -231,7 +228,7 @@ class Flickr:
                 time.sleep(5)
             else:
                 completed = True
-    
+
     @staticmethod
     def __get_signature(machinetags):
         thesignature = None
