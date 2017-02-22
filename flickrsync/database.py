@@ -319,10 +319,21 @@ class Database:
 
         return rows
 
-    def select_unmatchable_flickr_photos(self):
+    def select_unmatchable_flickr_photos(self, nodatematch=False):
         sqlstring = ("""SELECT *
                         FROM FlickrPhotos pr
                         WHERE Signature IS NULL
+                        AND (    :nodatematch = 1
+                            OR NOT EXISTS(
+                                SELECT 1
+                                FROM LocalPhotos pl
+                                WHERE Signature IS NOT NULL
+                                AND Deleted IS NULL
+                                AND pl.DateFlat = pr.DateFlat
+                                AND pl.ShortName = pr.ShortName
+                                AND pr.DateTakenUnknown = 0
+                            )
+                        )
                         AND NOT EXISTS(
                             SELECT 1
                             FROM LocalPhotos pl
@@ -330,19 +341,10 @@ class Database:
                             AND Deleted IS NULL
                             AND pl.FlickrId = pr.Id
                             AND pl.FlickrSecret = pr.OriginalSecret
-                        )
-                        AND NOT EXISTS(
-                            SELECT 1
-                            FROM LocalPhotos pl
-                            WHERE Signature IS NOT NULL
-                            AND Deleted IS NULL
-                            AND pl.DateFlat = pr.DateFlat
-                            AND pl.ShortName = pr.ShortName
-                            AND pr.DateTakenUnknown = 0
                         )""")
 
         with self.con:
-            cur = self.con.execute(sqlstring)
+            cur = self.con.execute(sqlstring, {'nodatematch': nodatematch})
             rows = cur.fetchall()
 
             logger.debug("Number of rows found: %d" % len(rows))
