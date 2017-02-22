@@ -319,7 +319,7 @@ class Database:
 
         return rows
 
-    def select_unidentifiable_flickr_photos(self):
+    def select_unmatchable_flickr_photos(self):
         sqlstring = ("""SELECT *
                         FROM FlickrPhotos pr
                         WHERE Signature IS NULL
