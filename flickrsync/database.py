@@ -8,7 +8,7 @@ from flickrsync.error import Error
 logger = logging.getLogger(Log.NAME)
 
 class Database:
-    
+
     def __init__(self, database):
         logger.debug('database<%s>' % database)
         assert(database), 'Database is <%s>' % database
@@ -163,7 +163,7 @@ class Database:
         logger.debug('photos.count<%d>' % len(photos))
 
         sqlstring = ("""INSERT INTO LocalPhotos(
-                            Directory, FileName, DateTimeOriginal, 
+                            Directory, FileName, DateTimeOriginal,
                             FlickrId, FlickrSecret, FlickrTitle, FlickrExtension,
                             Signature, ImageError, DateFlat, ShortName, Timestamp)
                         VALUES(
@@ -385,6 +385,23 @@ class Database:
             logger.debug("Number of rows found: %d" % len(rows))
 
         return rows
+
+    def select_min_upload_date_without_signature(self):
+        sqlstring = ("""SELECT MIN(DateUpload) AS mindateupload
+                        FROM FlickrPhotos
+                        WHERE Signature IS NULL""")
+
+        with self.con:
+            cur = self.con.execute(sqlstring)
+            row = cur.fetchone()
+
+            mindateupload = row["mindateupload"]
+
+        if mindateupload == None:
+            mindateupload = 0
+
+        logger.debug("mindateupload<%s>" % mindateupload)
+        return mindateupload
 
     def select_last_upload_date(self):
         sqlstring = ("""SELECT MAX(DateUpload) AS lastdateuploaded
