@@ -2,6 +2,7 @@
 import argparse
 import os
 import sys
+import math
 import multiprocessing
 import threading
 import logging
@@ -19,14 +20,15 @@ from flickrsync.log import Log
 logger = logging.getLogger(Log.NAME)
 
 COMMIT_SIZE = 50
+THREAD_COUNT_TAGS = 10
 
 def delete_tables(database, noprompt=False):
-    if noprompt or general.query_yes_no('Delete the database?', default='no'):    
+    if noprompt or general.query_yes_no('Delete the database?', default='no'):
         database.drop_local_photos_table()
         database.drop_flickr_photos_table()
         database.create_local_photos_table()
         database.create_flickr_photos_table()
-        
+
 def _commit_photos(database, photos):
     database.insert_local_photos(photos)
     database.do_commit()
@@ -125,6 +127,10 @@ def create_photosets(database, flickr, rootpath, noprompt=False):
 
 def _search_flickr(database, flickr, minuploaddate=-1):
     minuploaddate = minuploaddate if minuploaddate>=0 else (database.select_last_upload_date() + 1)
+    humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime('%Y-%m-%d %H:%M:%S')
+
+    logger.info('Searching Flickr since the last upload date <%s>. This could take a long time' % humandate)
+
     photos = flickr.get_photos(minuploaddate)
 
     if photos :
@@ -132,8 +138,8 @@ def _search_flickr(database, flickr, minuploaddate=-1):
         database.insert_flickr_photos(photos)
     else:
         humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime('%Y-%m-%d %H:%M:%S')
-        logger.info('No new photos found on Flickr since the last upload date <%s>' % humandate)
-    
+        logger.info('No new photos found on Flickr since the last upload date')
+
 def rebase_flickr(database, flickr, noprompt=False):
     if noprompt or general.query_yes_no('Rebase the Flickr database?', default='no'):
         database.drop_flickr_photos_table()
@@ -174,6 +180,10 @@ def _download_missing_photos_from_flickr(database, directory, dryrun=True, nopro
     else:
         logger.info('No missing photos to download')
 
+def _add_tags_worker(flickr, data):
+    for id, signature in data:
+        flickr.add_tags(id, signature)
+
 def _add_tags(flickr, localphotos, dryrun=True):
     logger.info('Adding tags to <{count}> Flickr photos'.format(count=len(localphotos)))
 
@@ -185,8 +195,21 @@ def _add_tags(flickr, localphotos, dryrun=True):
         for localphoto in localphotos:
             data.append((localphoto['flickrid'], flickr.get_signature_tag(localphoto['signature'])))
 
-        for id, signature in data:
-            flickr.add_tags(id, signature)
+        chunksize = math.ceil(len(data)/THREAD_COUNT_TAGS)
+
+        logger.debug('data<%d>, chunksize<%d>' % (len(data), chunksize))
+        assert(chunksize), 'Chunksize'
+
+        threads = []
+        for chunk in general.chunks(data, chunksize):
+            thread = threading.Thread(target=_add_tags_worker, args=(flickr, chunk,))
+            threads.append(thread)
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
 
 def _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=True, noprompt=False, nodatematch=False):
     success = False
@@ -220,7 +243,7 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
 
         thread = threading.Thread(target=_search_flickr, args=(database, flickr,))
         threads.append(thread)
-        
+
         thread = threading.Thread(target=_search_local, args=(database, directory,))
         threads.append(thread)
 
@@ -229,7 +252,7 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
 
         for thread in threads:
             thread.join()
-                
+
         if _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch):
             uploaded_count = _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
@@ -306,7 +329,7 @@ def main():
     except Exception as e:
         Log.traceback(logger, e)
         logger.error(e)
-        
+
     finally:
         print('finished')
 

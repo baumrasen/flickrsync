@@ -14,7 +14,7 @@ class Database:
         assert(database), 'Database is <%s>' % database
 
         try:
-            self.con = sqlite3.connect(database)
+            self.con = sqlite3.connect(database, check_same_thread=False)
         except Exception as e:
             raise Error("Unable to connect to database <%s>" % database)
 
@@ -23,9 +23,16 @@ class Database:
 
         self.__create_tables_if_not_exist()
 
+    def __exit__(self):
+        self.do_commit()
+        self.con.close()
+
     def do_commit(self):
-        self.con.commit()
-        logger.debug('committed')
+        try:
+            self.con.commit()
+            logger.debug('committed')
+        except Exception as e:
+            logger.error(e)
 
     def get_new_files(self, newsearch):
         assert (newsearch), "No newsearch records supplied"

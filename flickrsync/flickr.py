@@ -199,6 +199,8 @@ class Flickr:
         return countdeleted
 
     def add_tags(self, id, tags):
+        assert(id), 'id missing'
+        assert(tags), 'tags missing'
         logger.info('Adding tag to Flickr photo<{id}>, <{tags}'.format(id=id, tags=tags))
         try:
             self.api.photos.addTags(photo_id=id, tags=tags)
