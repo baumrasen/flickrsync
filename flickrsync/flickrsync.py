@@ -21,12 +21,12 @@ logger = logging.getLogger(Log.NAME)
 COMMIT_SIZE = 50
 
 def delete_tables(database, noprompt=False):
-    if noprompt or general.query_yes_no('Delete the database?', default='no'):
+    if noprompt or general.query_yes_no('Delete the database?', default='no'):    
         database.drop_local_photos_table()
         database.drop_flickr_photos_table()
         database.create_local_photos_table()
         database.create_flickr_photos_table()
-
+        
 def _commit_photos(database, photos):
     database.insert_local_photos(photos)
     database.do_commit()
@@ -133,7 +133,7 @@ def _search_flickr(database, flickr, minuploaddate=-1):
     else:
         humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime('%Y-%m-%d %H:%M:%S')
         logger.info('No new photos found on Flickr since the last upload date <%s>' % humandate)
-
+    
 def rebase_flickr(database, flickr, noprompt=False):
     if noprompt or general.query_yes_no('Rebase the Flickr database?', default='no'):
         database.drop_flickr_photos_table()
@@ -218,10 +218,10 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
     if noprompt or general.query_yes_no('Do you want to sync the local file system with Flickr'):
         threads = []
 
-        thread = threading.Thread(target = _search_flickr(database, flickr), args = ())
+        thread = threading.Thread(target=_search_flickr, args=(database, flickr,))
         threads.append(thread)
-
-        thread = threading.Thread(target = _search_local(database, directory), args = ())
+        
+        thread = threading.Thread(target=_search_local, args=(database, directory,))
         threads.append(thread)
 
         for thread in threads:
@@ -229,12 +229,8 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
 
         for thread in threads:
             thread.join()
-
-        database.do_commit()
-
+                
         if _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch):
-            database.do_commit()
-
             uploaded_count = _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
             if twoway:
@@ -310,9 +306,9 @@ def main():
     except Exception as e:
         Log.traceback(logger, e)
         logger.error(e)
-
+        
     finally:
-        logger.debug('finished')
+        print('finished')
 
 if __name__ == '__main__':
     try:
