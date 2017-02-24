@@ -88,6 +88,8 @@ Features
 
 #.  Perform a two way sync between the local file system and Flickr.
 
+#.  Multi-threaded.
+
 Sync Process
 ============
 
