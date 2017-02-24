@@ -211,6 +211,47 @@ def _add_tags(flickr, localphotos, dryrun=True):
         for thread in threads:
             thread.join()
 
+def _set_tags_worker(flickr, data):
+    for id, signature in data:
+        flickr.set_tags(id, signature)
+
+def delete_tags(database, flickr, deletetags, dryrun=True, noprompt=False):
+    assert(deletetags), 'deletetags not supplied'
+    flickrphotos = database.select_all_flickr_photos_matching_tag(deletetags)
+    logger.info('Deleting deletetags<{deletetags}> from <{count}> Flickr photos'.format(count=len(flickrphotos), deletetags=deletetags))
+
+    if flickrphotos:
+        if noprompt or general.query_yes_no('Deleting deletetags<{deletetags}> from <{count}> Flickr photos'.format(count=len(flickrphotos), deletetags=deletetags)):
+            data = []
+            for flickrphoto in flickrphotos:
+
+                newtags = general.remove_tag_from_tags(flickrphoto['tags'], deletetags)
+
+                data.append((flickrphoto['id'], newtags))
+
+            chunksize = math.ceil(len(data)/THREAD_COUNT_TAGS)
+
+            logger.debug('data<%d>, chunksize<%d>' % (len(data), chunksize))
+            assert(chunksize), 'Chunksize'
+
+            if dryrun:
+                logger.info('Dry run, not deleting tags')
+            else:
+                threads = []
+                for chunk in general.chunks(data, chunksize):
+                    thread = threading.Thread(target=_set_tags_worker, args=(flickr, chunk,))
+                    threads.append(thread)
+
+                for thread in threads:
+                    thread.start()
+
+                for thread in threads:
+                    thread.join()
+
+                _search_flickr(database, flickr, minuploaddate=0)
+    else:
+        logger.info('No matching Flickr tags found')
+
 def _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=True, noprompt=False, nodatematch=False):
     success = False
     flickrphotos = database.select_unmatchable_flickr_photos(nodatematch)
@@ -272,6 +313,7 @@ def main():
         parser.add_argument("-u", "--username", type = str, help = "config Flickr username, overrides the config file")
         parser.add_argument("-d", "--database", type = str, help = "FlickrSync database location, overrides the config file")
         parser.add_argument("-l", "--directory", type = str, help = "local picture directory, overrides the config file")
+        parser.add_argument("--deletetags", type = str, help = "delete all tags matching string")
 
         parser.add_argument("--auth", help = "authenticate with Flickr", action = "store_true")
         parser.add_argument("--sync", help = "perform a one way sync from the local file system to Flickr", action = "store_true")
@@ -283,6 +325,7 @@ def main():
         parser.add_argument("--debug", help = "enable debug logging", action = "store_true")
         parser.add_argument("--dryrun", help = "do not actually upload/download, perform a dry run", action = "store_true")
         parser.add_argument("--noprompt", help = "do not prompt", action = "store_true")
+
 
         args = parser.parse_args()
 
@@ -310,6 +353,9 @@ def main():
 
         if args.rebase:
             rebase_flickr(database, flickr, noprompt=args.noprompt)
+
+        if args.deletetags:
+            delete_tags(database, flickr, deletetags=args.deletetags, dryrun=args.dryrun, noprompt=args.noprompt)
 
         if args.sync:
             do_sync(database, flickr, settings.directory, twoway=False, dryrun=args.dryrun, noprompt=args.noprompt, nodatematch=args.nodatematch)

@@ -34,6 +34,20 @@ def list_from_rows(rows):
 def list_to_csv(thelist):
     return ','.join(str(v) for v in thelist)
 
+def remove_tag_from_tags(tags, thestring):
+    tagslist = tags.split(' ')
+    newtagslist = list(tagslist)
+
+    logger.debug('tagslist<%s>' % tagslist)
+
+    for item in tagslist:
+        if item.find(thestring) >=0:
+            logger.debug('removing<%s>' % item)
+            newtagslist.remove(item)
+
+    logger.debug('return<%s>' % newtagslist)
+    return ' '.join(newtagslist)
+
 # remove root directory from path
 # replace path separator with spaces
 # remove leading spaces

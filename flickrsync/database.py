@@ -290,6 +290,20 @@ class Database:
 
         return rows
 
+    def select_all_flickr_photos_matching_tag(self, tagstring):
+        assert(tagstring), 'tagstring not supplied'
+        sqlstring = ("""SELECT *
+                        FROM FlickrPhotos
+                        WHERE Tags LIKE '%{tagstring}%'""".format(tagstring=tagstring))
+
+        with self.con:
+            cur = self.con.execute(sqlstring)
+            rows = cur.fetchall()
+
+            logger.debug("Number of rows found: %d" % len(rows))
+
+        return rows
+
     def select_missing_flickr_photos(self):
         sqlstring = ("""SELECT *
                         FROM FlickrPhotos pr

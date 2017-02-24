@@ -198,6 +198,14 @@ class Flickr:
         logger.info('photosets deleted<%d>' % countdeleted)
         return countdeleted
 
+    def set_tags(self, id, tags):
+        assert(id), 'id missing'
+        logger.info('Setting tags to Flickr photo<{id}>, <{tags}>'.format(id=id, tags=tags))
+        try:
+            self.api.photos.setTags(photo_id=id, tags=tags)
+        except flickrapi.exceptions.FlickrError as e:
+            logger.error(e)
+
     def add_tags(self, id, tags):
         assert(id), 'id missing'
         assert(tags), 'tags missing'
