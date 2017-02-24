@@ -14,7 +14,7 @@ class Database:
         assert(database), 'Database is <%s>' % database
 
         try:
-            self.con = sqlite3.connect(database)
+            self.con = sqlite3.connect(database, check_same_thread=False)
         except Exception as e:
             raise Error("Unable to connect to database <%s>" % database)
 
@@ -23,9 +23,16 @@ class Database:
 
         self.__create_tables_if_not_exist()
 
+    def __exit__(self):
+        self.do_commit()
+        self.con.close()
+
     def do_commit(self):
-        self.con.commit()
-        logger.debug('committed')
+        try:
+            self.con.commit()
+            logger.debug('committed')
+        except Exception as e:
+            logger.error(e)
 
     def get_new_files(self, newsearch):
         assert (newsearch), "No newsearch records supplied"
@@ -283,6 +290,20 @@ class Database:
 
         return rows
 
+    def select_all_flickr_photos_matching_tag(self, tagstring):
+        assert(tagstring), 'tagstring not supplied'
+        sqlstring = ("""SELECT *
+                        FROM FlickrPhotos
+                        WHERE Tags LIKE '%{tagstring}%'""".format(tagstring=tagstring))
+
+        with self.con:
+            cur = self.con.execute(sqlstring)
+            rows = cur.fetchall()
+
+            logger.debug("Number of rows found: %d" % len(rows))
+
+        return rows
+
     def select_missing_flickr_photos(self):
         sqlstring = ("""SELECT *
                         FROM FlickrPhotos pr
@@ -405,8 +426,7 @@ class Database:
 
     def select_last_upload_date(self):
         sqlstring = ("""SELECT MAX(DateUpload) AS lastdateuploaded
-                        FROM FlickrPhotos
-                        WHERE Signature IS NOT NULL""")
+                        FROM FlickrPhotos""")
 
         with self.con:
             cur = self.con.execute(sqlstring)
