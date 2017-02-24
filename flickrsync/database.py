@@ -412,8 +412,7 @@ class Database:
 
     def select_last_upload_date(self):
         sqlstring = ("""SELECT MAX(DateUpload) AS lastdateuploaded
-                        FROM FlickrPhotos
-                        WHERE Signature IS NOT NULL""")
+                        FROM FlickrPhotos""")
 
         with self.con:
             cur = self.con.execute(sqlstring)
