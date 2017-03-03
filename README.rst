@@ -54,20 +54,20 @@ Usage
 
 ::
 
-    To see a list of commands
+    To see a full list of commands
     $ flickrsync --help
 
     To authenticate FlickrSync with Flickr
-    $ flickrsync --auth
+    $ flickrsync auth
 
     To perform a one way sync from the local file system to Flickr
-    $ flickrsync --sync
+    $ flickrsync sync
 
     To perform a two way sync between the local file system and Flickr
-    $ flickrsync --sync2
+    $ flickrsync sync2
 
     To create Flickr photosets based upon the local file system
-    $ flickrsync --photosets
+    $ flickrsync photosets
 
 Features
 ========
