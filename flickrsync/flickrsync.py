@@ -16,6 +16,7 @@ from flickrsync.database import Database
 from flickrsync.flickr import Flickr
 from flickrsync.error import Error
 from flickrsync.log import Log
+from flickrsync.helpaction import _HelpAction
 
 logger = logging.getLogger(Log.NAME)
 
@@ -235,17 +236,17 @@ def _set_tags_worker(flickr, data):
     for id, signature in data:
         flickr.set_tags(id, signature)
 
-def delete_tags(database, flickr, deletetags, dryrun=True, noprompt=False):
-    assert(deletetags), 'deletetags not supplied'
-    flickrphotos = database.select_all_flickr_photos_matching_tag(deletetags)
-    logger.info('Deleting deletetags<{deletetags}> from <{count}> Flickr photos'.format(count=len(flickrphotos), deletetags=deletetags))
+def delete_tags(database, flickr, stringmatch, dryrun=True, noprompt=False):
+    assert(stringmatch), 'stringmatch not supplied'
+    flickrphotos = database.select_all_flickr_photos_matching_tag(stringmatch)
+    logger.info('Deleting tags containing STRING<{stringmatch}> from <{count}> Flickr photos'.format(count=len(flickrphotos), stringmatch=stringmatch))
 
     if flickrphotos:
-        if noprompt or general.query_yes_no('Deleting deletetags<{deletetags}> from <{count}> Flickr photos'.format(count=len(flickrphotos), deletetags=deletetags)):
+        if noprompt or general.query_yes_no('Deleting tags containing STRING<{stringmatch}> from <{count}> Flickr photos'.format(count=len(flickrphotos), stringmatch=stringmatch)):
             data = []
             for flickrphoto in flickrphotos:
 
-                newtags = general.remove_tag_from_tags(flickrphoto['tags'], deletetags)
+                newtags = general.remove_tag_from_tags(flickrphoto['tags'], stringmatch)
 
                 data.append((flickrphoto['id'], newtags))
 
@@ -328,29 +329,39 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
 def main():
     try:
         logger.debug('started')
-        logger.debug("sys.argv<%s>" % str(sys.argv))
+        logger.debug('sys.argv<%s>' % str(sys.argv))
 
-        parser = argparse.ArgumentParser(description = 'A command line tool to backup local file system pictures to Flickr')
+        parser = argparse.ArgumentParser(description = 'A command line tool to backup local file system pictures to Flickr', add_help=False)
+        parser.add_argument('-h', '--help', action=_HelpAction, help = 'show this help message and exit')
+        parser.add_argument('-c', '--config', type = str, help = 'config file location')
+        parser.add_argument('-p', '--profile', type = str, help = 'config profile section')
+        parser.add_argument('-u', '--username', type = str, help = 'config Flickr username, overrides the config file')
+        parser.add_argument('-d', '--database', type = str, help = 'FlickrSync database location, overrides the config file')
+        parser.add_argument('-l', '--directory', type = str, help = 'local picture directory, overrides the config file')
+        parser.add_argument('--noprompt', help = 'do not prompt', action = 'store_true')
+        parser.add_argument('--debug', help = 'enable debug logging', action = 'store_true')
 
-        parser.add_argument("-c", "--config", type = str, help = "config file location")
-        parser.add_argument("-p", "--profile", type = str, help = "config profile section")
+        subparsers = parser.add_subparsers(dest='actionname')
 
-        parser.add_argument("-u", "--username", type = str, help = "config Flickr username, overrides the config file")
-        parser.add_argument("-d", "--database", type = str, help = "FlickrSync database location, overrides the config file")
-        parser.add_argument("-l", "--directory", type = str, help = "local picture directory, overrides the config file")
-        parser.add_argument("--deletetags", type = str, help = "delete all tags matching string")
+        parser_auth = subparsers.add_parser('auth', help = 'authenticate with Flickr', add_help=False)
 
-        parser.add_argument("--auth", help = "authenticate with Flickr", action = "store_true")
-        parser.add_argument("--sync", help = "perform a one way sync from the local file system to Flickr", action = "store_true")
-        parser.add_argument("--sync2", help = "perform a two way sync between the local file system and Flickr", action = "store_true")
-        parser.add_argument("--photosets", help = "create Flickr photosets based upon the local file system", action = "store_true")
-        parser.add_argument("--delete", help = "delete the database tables", action = "store_true")
-        parser.add_argument("--rebase", help = "rebase the Flickr database table", action = "store_true")
-        parser.add_argument("--nodatematch", help = "during sync, do not use dates to match", action = "store_true")
-        parser.add_argument("--debug", help = "enable debug logging", action = "store_true")
-        parser.add_argument("--dryrun", help = "do not actually upload/download, perform a dry run", action = "store_true")
-        parser.add_argument("--noprompt", help = "do not prompt", action = "store_true")
-        parser.add_argument("--identifymissing", help = "during sync, create a Flickr photoset of photos missing on local", action = "store_true")
+        parser_sync = subparsers.add_parser('sync', help = 'perform a one way sync from the local file system to Flickr', add_help=False)
+        parser_sync.add_argument('--nodatematch', help = 'during sync, do not use dates to match', action = 'store_true')
+        parser_sync.add_argument('--dryrun', help = 'do not actually upload/download, perform a dry run', action = 'store_true')
+        parser_sync.add_argument('--identifymissing', help = 'during sync, create a Flickr photoset of photos missing on local', action = 'store_true')
+
+        parser_sync2 = subparsers.add_parser('sync2', help = 'perform a two way sync between the local file system and Flickr', add_help=False)
+        parser_sync2.add_argument('--nodatematch', help = 'during sync, do not use dates to match', action = 'store_true')
+        parser_sync2.add_argument('--dryrun', help = 'do not actually upload/download, perform a dry run', action = 'store_true')
+
+        parser_photosets = subparsers.add_parser('photosets', help = 'create Flickr photosets based upon the local file system', add_help=False)
+
+        parser_deletetags = subparsers.add_parser('deletetags', help = 'delete all tags containing STRING', add_help=False)
+        parser_deletetags.add_argument('STRING', type = str)
+        parser_deletetags.add_argument('--dryrun', help = 'do not actually deleted Flickr tags, perform a dry run', action = 'store_true')
+
+        parser_delete = subparsers.add_parser('delete', help = 'delete the database tables', add_help=False)
+        parser_rebase = subparsers.add_parser('rebase', help = 'rebase the Flickr database table', add_help=False)
 
         args = parser.parse_args()
 
@@ -370,27 +381,27 @@ def main():
         database = Database(settings.database)
         flickr = Flickr(settings.api_key, settings.api_secret, settings.username)
 
-        if args.auth:
-            flickr.authenticate()
-
-        if args.delete:
-            delete_tables(database, noprompt=args.noprompt)
-
-        if args.rebase:
-            rebase_flickr(database, flickr, noprompt=args.noprompt)
-
-        if args.deletetags:
-            delete_tags(database, flickr, deletetags=args.deletetags, dryrun=args.dryrun, noprompt=args.noprompt)
-
-        if args.sync:
+        if args.actionname == 'sync':
             do_sync(database, flickr, settings.directory, twoway=False, dryrun=args.dryrun, noprompt=args.noprompt,
                     nodatematch=args.nodatematch, identifymissing=args.identifymissing)
 
-        elif args.sync2:
+        elif args.actionname == 'sync2':
             do_sync(database, flickr, settings.directory, twoway=True, dryrun=args.dryrun, noprompt=args.noprompt, nodatematch=args.nodatematch)
 
-        if args.photosets:
+        elif args.actionname == 'delete':
+            delete_tables(database, noprompt=args.noprompt)
+
+        elif args.actionname == 'photosets':
             create_photosets(database, flickr, settings.directory, noprompt=args.noprompt)
+
+        elif args.actionname == 'deletetags':
+            delete_tags(database, flickr, stringmatch=args.STRING, dryrun=args.dryrun, noprompt=args.noprompt)
+
+        elif args.actionname == 'auth':
+            flickr.authenticate()
+
+        elif args.actionname == 'rebase':
+            rebase_flickr(database, flickr, noprompt=args.noprompt)
 
         database.con.close()
 
