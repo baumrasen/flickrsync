@@ -21,6 +21,7 @@ logger = logging.getLogger(Log.NAME)
 
 COMMIT_SIZE = 50
 THREAD_COUNT_TAGS = 10
+PHOTOSET_MISSING = 'FlickrSync: pictures not on local'
 
 def delete_tables(database, noprompt=False):
     if noprompt or general.query_yes_no('Delete the database?', default='no'):
@@ -170,7 +171,6 @@ def _do_upload(database, flickr, directory, dryrun=True, noprompt=False):
     return passed
 
 def _download_missing_photos_from_flickr(database, directory, dryrun=True, noprompt=False):
-
     flickrphotos = database.select_missing_flickr_photos()
 
     if flickrphotos:
@@ -179,6 +179,26 @@ def _download_missing_photos_from_flickr(database, directory, dryrun=True, nopro
             _search_local(database, directory)
     else:
         logger.info('No missing photos to download')
+
+def create_photoset_missing_photos_on_local(database, flickr):
+    flickrphotos = database.select_missing_flickr_photos()
+
+    if flickrphotos:
+        idlist = []
+        for row in flickrphotos:
+            idlist.append(row['id'])
+
+        photoscsv = general.list_to_csv(idlist)
+        photosetname = '{name} {date}'.format(name=PHOTOSET_MISSING, date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        primaryphotoid = flickrphotos[0]['Id']
+        photosetid = flickr.photoset_create(photosetname, primaryphotoid)
+
+        assert(photosetid), 'photosetId is Null'
+
+        flickr.photoset_edit(photosetid, primaryphotoid, photoscsv)
+
+    else:
+        logger.info('No missing photos on local')
 
 def _add_tags_worker(flickr, data):
     for id, signature in data:
@@ -278,11 +298,13 @@ def _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dr
     logger.info('Scan<{success}>'.format(success='success' if success else 'aborted'))
     return success
 
-def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=False, nodatematch=False):
+def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=False, nodatematch=False, identifymissing=False):
     if noprompt or general.query_yes_no('Do you want to sync the local file system with Flickr'):
         threads = []
 
-        thread = threading.Thread(target=_search_flickr, args=(database, flickr,))
+        minuploaddate = 0 if identifymissing else -1
+
+        thread = threading.Thread(target=_search_flickr, args=(database, flickr, minuploaddate,))
         threads.append(thread)
 
         thread = threading.Thread(target=_search_local, args=(database, directory,))
@@ -297,7 +319,10 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
         if _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch):
             uploaded_count = _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
-            if twoway:
+            if identifymissing:
+                create_photoset_missing_photos_on_local(database, flickr)
+
+            elif twoway:
                 _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
 
 def main():
@@ -321,11 +346,11 @@ def main():
         parser.add_argument("--photosets", help = "create Flickr photosets based upon the local file system", action = "store_true")
         parser.add_argument("--delete", help = "delete the database tables", action = "store_true")
         parser.add_argument("--rebase", help = "rebase the Flickr database table", action = "store_true")
-        parser.add_argument("--nodatematch", help = "do not use dates to match during the scanning phase", action = "store_true")
+        parser.add_argument("--nodatematch", help = "during sync, do not use dates to match", action = "store_true")
         parser.add_argument("--debug", help = "enable debug logging", action = "store_true")
         parser.add_argument("--dryrun", help = "do not actually upload/download, perform a dry run", action = "store_true")
         parser.add_argument("--noprompt", help = "do not prompt", action = "store_true")
-
+        parser.add_argument("--identifymissing", help = "during sync, create a Flickr photoset of photos missing on local", action = "store_true")
 
         args = parser.parse_args()
 
@@ -358,7 +383,8 @@ def main():
             delete_tags(database, flickr, deletetags=args.deletetags, dryrun=args.dryrun, noprompt=args.noprompt)
 
         if args.sync:
-            do_sync(database, flickr, settings.directory, twoway=False, dryrun=args.dryrun, noprompt=args.noprompt, nodatematch=args.nodatematch)
+            do_sync(database, flickr, settings.directory, twoway=False, dryrun=args.dryrun, noprompt=args.noprompt,
+                    nodatematch=args.nodatematch, identifymissing=args.identifymissing)
 
         elif args.sync2:
             do_sync(database, flickr, settings.directory, twoway=True, dryrun=args.dryrun, noprompt=args.noprompt, nodatematch=args.nodatematch)
