@@ -126,6 +126,7 @@ Picture Matching
     - picture file name + date picture was taken, or
     - ImageMagick hash signature of picture
 
+#. Date matching is turned on by default and can be disabled using the option [--nodatematch]. Use this option if you have pictures which do not have correct DateTimeOriginal.
 #. Each uploaded picture is tagged with its ImageMagick hash signature.
 #. Pictures on Flickr have a datetaken, https://www.flickr.com/services/api/misc.dates.html.
 #. If the Flickr datetaken is generated from the pictures Exif data, then Flickr will set the DateTakenUnknown to 0.
