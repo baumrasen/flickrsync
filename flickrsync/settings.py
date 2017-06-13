@@ -11,7 +11,7 @@ class Settings:
     CONFIG_DEFAULT = 'DEFAULT'
 
     def __init__(self, args):
-        assert (args), "Args not supplied<%s>" % args
+        assert args, "Args not supplied<%s>" % args
         logger.debug('args<%s>' % args)
 
         configfile = os.path.join(os.path.dirname(__file__), 'etc/config.ini')
@@ -20,7 +20,7 @@ class Settings:
         sectionname = args.profile if args.profile else Settings.CONFIG_DEFAULT
         logger.debug('configname<%s>, sectionname<%s>' % (self.configname, sectionname))
 
-        assert (os.path.isfile(self.configname)), "Config file not found <%s>" % self.configname
+        assert os.path.isfile(self.configname), "Config file not found <%s>" % self.configname
 
         config = configparser.ConfigParser()
         config.read(self.configname)

@@ -111,7 +111,7 @@ def create_photosets(database, flickr, rootpath, noprompt=False):
                     else:
                         photosetid = flickr.photoset_create(photosetname, primaryphotoid)
 
-                    assert(photosetid), 'photosetId is Null'
+                    assert photosetid, 'photosetId is Null'
 
                     # replace photos in set
                     flickr.photoset_edit(photosetid, primaryphotoid, photoscsv)
@@ -194,7 +194,7 @@ def create_photoset_missing_photos_on_local(database, flickr):
         primaryphotoid = flickrphotos[0]['Id']
         photosetid = flickr.photoset_create(photosetname, primaryphotoid)
 
-        assert(photosetid), 'photosetId is Null'
+        assert photosetid, 'photosetId is Null'
 
         flickr.photoset_edit(photosetid, primaryphotoid, photoscsv)
 
@@ -219,7 +219,7 @@ def _add_tags(flickr, localphotos, dryrun=True):
         chunksize = math.ceil(len(data)/THREAD_COUNT_TAGS)
 
         logger.debug('data<%d>, chunksize<%d>' % (len(data), chunksize))
-        assert(chunksize), 'Chunksize'
+        assert chunksize, 'Chunksize'
 
         threads = []
         for chunk in general.chunks(data, chunksize):
@@ -237,7 +237,7 @@ def _set_tags_worker(flickr, data):
         flickr.set_tags(id, signature)
 
 def delete_tags(database, flickr, stringmatch, dryrun=True, noprompt=False):
-    assert(stringmatch), 'stringmatch not supplied'
+    assert stringmatch, 'stringmatch not supplied'
     flickrphotos = database.select_all_flickr_photos_matching_tag(stringmatch)
     logger.info('Deleting tags containing STRING<{stringmatch}> from <{count}> Flickr photos'.format(count=len(flickrphotos), stringmatch=stringmatch))
 
@@ -253,7 +253,7 @@ def delete_tags(database, flickr, stringmatch, dryrun=True, noprompt=False):
             chunksize = math.ceil(len(data)/THREAD_COUNT_TAGS)
 
             logger.debug('data<%d>, chunksize<%d>' % (len(data), chunksize))
-            assert(chunksize), 'Chunksize'
+            assert chunksize, 'Chunksize'
 
             if dryrun:
                 logger.info('Dry run, not deleting tags')
