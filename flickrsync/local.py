@@ -18,7 +18,7 @@ IMAGE_ERROR = 1
 logger = logging.getLogger(Log.NAME)
 
 def search_photos(picturepath):
-    assert (picturepath), "picturepath not supplied"
+    assert picturepath, "picturepath not supplied"
     logger.debug('picturepath<%s>' % picturepath)
 
     newsearch = []
@@ -56,8 +56,8 @@ def search_deleted(allfiles):
 
 def image_worker(data):
     directory, filename = data
-    assert (directory), "directory not supplied<%s>" % directory
-    assert (filename), "filename not supplied<%s>" % filename
+    assert directory, "directory not supplied<%s>" % directory
+    assert filename, "filename not supplied<%s>" % filename
 
     datetimeoriginal = UNDEFINED
     flickrid, flickrsecret, flickrtitle, flickrextension = _get_flickr_id_secret_title_extension(filename)

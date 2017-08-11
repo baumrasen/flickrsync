@@ -11,7 +11,7 @@ class Database:
 
     def __init__(self, database):
         logger.debug('database<%s>' % database)
-        assert(database), 'Database is <%s>' % database
+        assert database, 'Database is <%s>' % database
 
         try:
             self.con = sqlite3.connect(database, check_same_thread=False)
@@ -19,7 +19,7 @@ class Database:
             raise Error("Unable to connect to database <%s>" % database)
 
         self.con.row_factory = sqlite3.Row
-        assert (self.con), "Database connection not created"
+        assert self.con, "Database connection not created"
 
         self.__create_tables_if_not_exist()
 
@@ -35,7 +35,7 @@ class Database:
             logger.error(e)
 
     def get_new_files(self, newsearch):
-        assert (newsearch), "No newsearch records supplied"
+        assert newsearch, "No newsearch records supplied"
         logger.debug('newsearch.count<%d>' % len(newsearch))
         self.__drop_table('Search')
         self.__create_search_table()
@@ -134,7 +134,7 @@ class Database:
             logger.debug('index created')
 
     def insert_flickr_photosets(self, photosets):
-        assert (photosets), "no photosets to insert"
+        assert photosets, "no photosets to insert"
         logger.debug('photosets.count<%d>' % len(photosets))
 
         sqlstring = ("""INSERT INTO FlickrPhotosets(
@@ -147,7 +147,7 @@ class Database:
             logger.debug("Number of rows inserted: %d" % cur.rowcount)
 
     def insert_flickr_photos(self, photos):
-        assert (photos), "no photos to insert"
+        assert photos, "no photos to insert"
         logger.debug('photos.count<%d>' % len(photos))
 
         sqlstring = ("""INSERT OR REPLACE INTO FlickrPhotos(
@@ -166,7 +166,7 @@ class Database:
             logger.debug("Number of rows inserted: %d" % cur.rowcount)
 
     def insert_local_photos(self, photos):
-        assert (photos), "no photos to insert"
+        assert photos, "no photos to insert"
         logger.debug('photos.count<%d>' % len(photos))
 
         sqlstring = ("""INSERT INTO LocalPhotos(
@@ -183,7 +183,7 @@ class Database:
             logger.debug("Number of rows inserted: %d" % cur.rowcount)
 
     def __insert_search_files(self, records):
-        assert (records), "no records to insert"
+        assert records, "no records to insert"
         logger.debug('records.count<%d>' % len(records))
 
         sqlstring = ("""INSERT INTO Search(
@@ -212,7 +212,7 @@ class Database:
         return [row['directory'] for row in rows]
 
     def get_photoset_id(self, photosetname) :
-        assert (photosetname), "photosetname not supplied"
+        assert photosetname, "photosetname not supplied"
 
         sqlstring = ("""SELECT MAX(psr.Id) AS Id
                         FROM FlickrPhotosets psr
@@ -226,7 +226,7 @@ class Database:
         return row['id']
 
     def select_flickr_photos_matching_local_by_directory(self, directory):
-        assert (directory), "directory not supplied"
+        assert directory, "directory not supplied"
 
         sqlstring = ("""SELECT pr.Id
                         FROM FlickrPhotos pr
@@ -291,7 +291,7 @@ class Database:
         return rows
 
     def select_all_flickr_photos_matching_tag(self, tagstring):
-        assert(tagstring), 'tagstring not supplied'
+        assert tagstring, 'tagstring not supplied'
         sqlstring = ("""SELECT *
                         FROM FlickrPhotos
                         WHERE Tags LIKE '%{tagstring}%'""".format(tagstring=tagstring))
@@ -441,7 +441,7 @@ class Database:
         return lastdateuploaded
 
     def update_deleted_photos(self, deletedfiles):
-        assert (deletedfiles), "no deletedfiles records supplied"
+        assert deletedfiles, "no deletedfiles records supplied"
         logger.debug('deletedfiles.count<%d>' % len(deletedfiles))
 
         sqlstring = ("""UPDATE LocalPhotos
@@ -461,7 +461,7 @@ class Database:
             self.create_flickr_photos_table()
 
     def __table_exist(self, tablename):
-        assert (tablename), "tablename not supplied"
+        assert tablename, "tablename not supplied"
         logger.debug('tablename<%s>' % tablename)
 
         sqlstring = ("""SELECT COUNT(1) AS result
@@ -478,7 +478,7 @@ class Database:
         return (row['result'] == 1)
 
     def __drop_table(self, table):
-        assert (table), "Table not supplied"
+        assert table, "Table not supplied"
 
         with self.con:
             self.con.execute("DROP TABLE IF EXISTS %s" % table)

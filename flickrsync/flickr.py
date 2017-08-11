@@ -16,9 +16,9 @@ class Flickr:
     MACHINE_TAG_SIGNATURE = '%s:signature' % general.APPLICATION_NAME
 
     def __init__(self, api_key, api_secret, username):
-        assert (api_key), "api_key not supplied<%s>" % api_key
-        assert (api_secret), "api_secret not supplied<%s>" % api_secret
-        assert (username), "username not supplied<%s>" % username
+        assert api_key, "api_key not supplied<%s>" % api_key
+        assert api_secret, "api_secret not supplied<%s>" % api_secret
+        assert username, "username not supplied<%s>" % username
 
         try:
             self.api = flickrapi.FlickrAPI(api_key, api_secret, username = username)
@@ -48,7 +48,7 @@ class Flickr:
         return photosets
 
     def get_photos(self, minuploaddate):
-        assert (minuploaddate >= 0), "minuploaddate not supplied<%s>" % minuploaddate
+        assert minuploaddate >= 0, "minuploaddate not supplied<%s>" % minuploaddate
         logger.debug("minuploaddate<%s>" % minuploaddate)
 
         photos = []
@@ -141,8 +141,8 @@ class Flickr:
         return passed, failed
 
     def photoset_create(self, photosetname, primaryphotoid):
-        assert(photosetname), 'photosetname<%s>' % photosetname
-        assert(primaryphotoid), 'primaryphotoid<%s>' % primaryphotoid
+        assert photosetname, 'photosetname<%s>' % photosetname
+        assert primaryphotoid, 'primaryphotoid<%s>' % primaryphotoid
 
         try:
             newphotoset = self.api.photosets.create(title = photosetname, description = Flickr.PHOTOSET_DESCRIPTION, primary_photo_id = primaryphotoid)
@@ -154,9 +154,9 @@ class Flickr:
         return photosetid
 
     def photoset_edit(self, photosetid, primaryphotoid, photoscsv):
-        assert(photosetid), 'photosetid<%s>' % photosetid
-        assert(primaryphotoid), 'primaryphotoid<%s>' % primaryphotoid
-        assert(photoscsv), 'photoscsv<%s>' % photoscsv
+        assert photosetid, 'photosetid<%s>' % photosetid
+        assert primaryphotoid, 'primaryphotoid<%s>' % primaryphotoid
+        assert photoscsv, 'photoscsv<%s>' % photoscsv
         logger.debug('photosetid<%s>' % photosetid)
         logger.debug('primaryphotoid<%s>' % primaryphotoid)
         logger.debug('photoscsv<%s>' % photoscsv)
@@ -168,7 +168,7 @@ class Flickr:
             logger.error(e)
 
     def delete_unused_photosets(self, photosetsused, photosets):
-        assert(photosetsused), 'photosetsused<%s>' % photosetsused
+        assert photosetsused, 'photosetsused<%s>' % photosetsused
 
         logger.debug('photosetsused<%s>' % photosetsused)
         logger.debug('photosets<%s>' % photosets)
@@ -199,7 +199,7 @@ class Flickr:
         return countdeleted
 
     def set_tags(self, id, tags):
-        assert(id), 'id missing'
+        assert id, 'id missing'
         logger.info('Setting tags to Flickr photo<{id}>, <{tags}>'.format(id=id, tags=tags))
         try:
             self.api.photos.setTags(photo_id=id, tags=tags)
@@ -207,8 +207,8 @@ class Flickr:
             logger.error(e)
 
     def add_tags(self, id, tags):
-        assert(id), 'id missing'
-        assert(tags), 'tags missing'
+        assert id, 'id missing'
+        assert tags, 'tags missing'
         logger.info('Adding tag to Flickr photo<{id}>, <{tags}'.format(id=id, tags=tags))
         try:
             self.api.photos.addTags(photo_id=id, tags=tags)
