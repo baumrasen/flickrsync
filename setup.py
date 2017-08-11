@@ -11,6 +11,7 @@ setup(
     license='GPL3',
     install_requires=[
         'flickrapi>=2.2.1',
+        'Wand>=0.4.4',
         'configparser',
     ],
     scripts=['bin/flickrsync'],

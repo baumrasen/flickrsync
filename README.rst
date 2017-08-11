@@ -14,7 +14,6 @@ Requirements
 ::
 
     Python3
-    Wand
     A Flickr account
 
 Install
@@ -22,7 +21,6 @@ Install
 
 ::
 
-    $ sudo apt install python3-wand
     $ sudo pip3 install flickrsync
 
 | For Windows / Mac installation help:
