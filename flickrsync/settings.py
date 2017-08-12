@@ -13,7 +13,7 @@ class Settings:
         assert args, "Args not supplied<%s>" % args
         logger.debug('args<%s>' % args)
 
-        configfile = os.path.join(os.path.dirname(__file__), 'etc/config.ini')
+        configfile = os.path.expanduser('~/.flickrsync/config.ini')
         self.configname = os.path.abspath(args.config if args.config else configfile)
 
         sectionname = args.profile if args.profile else Settings.CONFIG_DEFAULT
@@ -25,11 +25,16 @@ class Settings:
         config.read(self.configname)
 
         try:
+            assert config.get(sectionname, 'api_key'), "api_key not set in config file"
+            assert config.get(sectionname, 'api_secret'), "api_secret not set in config file"
+            assert config.get(sectionname, 'database') or args.database, "database not set in config file"
+            assert config.get(sectionname, 'directory') or args.directory, "directory not set in config file"
+
             self.api_key = config.get(sectionname, 'api_key')
             self.api_secret = config.get(sectionname, 'api_secret')
             self.username = args.username  if args.username  else config.get(sectionname, 'username')
-            self.database = os.path.abspath(os.path.expanduser(args.database if args.database  else config.get(sectionname, 'database')))
             self.directory = os.path.abspath(os.path.expanduser(args.directory if args.directory else config.get(sectionname, 'directory')))
+            self.database = os.path.abspath(os.path.expanduser(args.database if args.database  else config.get(sectionname, 'database')))
 
         except configparser.NoOptionError as e:
             raise Error('NoOptionError: configname<%s>, sectionname<%s>, %s' % (self.configname, sectionname, e))
