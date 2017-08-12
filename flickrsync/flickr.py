@@ -33,7 +33,7 @@ class Flickr:
         try:
             for photoset in self.api.walk_photosets():
                 a_set = {
-                     'id'           : photoset.get('id')
+                      'id'           : photoset.get('id')
                     , 'datecreate'   : photoset.get('date_create')
                     , 'dateupdate'   : photoset.get('date_update')
                     , 'title'        : photoset.find('title').text
@@ -198,20 +198,20 @@ class Flickr:
         logger.info('photosets deleted<%d>' % countdeleted)
         return countdeleted
 
-    def set_tags(self, id, tags):
-        assert id, 'id missing'
-        logger.info('Setting tags to Flickr photo<{id}>, <{tags}>'.format(id=id, tags=tags))
+    def set_tags(self, photoid, tags):
+        assert photoid, 'photoid missing'
+        logger.info('Setting tags to Flickr photo<{photoid}>, <{tags}>'.format(photoid=photoid, tags=tags))
         try:
-            self.api.photos.setTags(photo_id=id, tags=tags)
+            self.api.photos.setTags(photo_id=photoid, tags=tags)
         except flickrapi.exceptions.FlickrError as e:
             logger.error(e)
 
-    def add_tags(self, id, tags):
-        assert id, 'id missing'
+    def add_tags(self, photoid, tags):
+        assert photoid, 'photoid missing'
         assert tags, 'tags missing'
-        logger.info('Adding tag to Flickr photo<{id}>, <{tags}'.format(id=id, tags=tags))
+        logger.info('Adding tag to Flickr photo<{photoid}>, <{tags}'.format(photoid=photoid, tags=tags))
         try:
-            self.api.photos.addTags(photo_id=id, tags=tags)
+            self.api.photos.addTags(photo_id=photoid, tags=tags)
         except flickrapi.exceptions.FlickrError as e:
             logger.error(e)
 

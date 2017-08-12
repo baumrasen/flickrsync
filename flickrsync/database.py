@@ -1,7 +1,6 @@
 import sqlite3
 import time
 import logging
-from flickrsync import general
 from flickrsync.log import Log
 from flickrsync.error import Error
 
@@ -15,7 +14,7 @@ class Database:
 
         try:
             self.con = sqlite3.connect(database, check_same_thread=False)
-        except Exception as e:
+        except Exception:
             raise Error("Unable to connect to database <%s>" % database)
 
         self.con.row_factory = sqlite3.Row

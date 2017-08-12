@@ -3,7 +3,6 @@ import configparser
 import logging
 
 from flickrsync.error import Error
-from flickrsync import general
 from flickrsync.log import Log
 logger = logging.getLogger(Log.NAME)
 

@@ -14,6 +14,8 @@ Requirements
 ::
 
     Python3
+    Pip
+    ImageMagick
     A Flickr account
 
 Install
@@ -21,10 +23,9 @@ Install
 
 ::
 
+    $ sudo apt install python3-pip
+    $ sudo apt install libmagickwand-dev
     $ sudo pip3 install flickrsync
-
-| For Windows / Mac installation help:
-| http://docs.wand-py.org/en/0.4.4/guide/install.html
 
 References
 ==========
