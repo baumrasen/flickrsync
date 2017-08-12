@@ -59,8 +59,9 @@ def image_worker(data):
     assert directory, "directory not supplied<%s>" % directory
     assert filename, "filename not supplied<%s>" % filename
 
-    datetimeoriginal = UNDEFINED
     flickrid, flickrsecret, flickrtitle, flickrextension = _get_flickr_id_secret_title_extension(filename)
+
+    datetimeoriginal = UNDEFINED
     signature = UNDEFINED
     dateflat = UNDEFINED
     imageerror = IMAGE_ERROR
@@ -129,7 +130,9 @@ def _download_image(data):
     except Exception as e:
         logger.error('Failed to download from Flickr: %s, %s' % (url, e))
 
-def _get_flickr_filename(photoid, secret, title, extension):
+def _get_flickr_filename(photoid, secret, rawtitle, extension):
+    # the flickr title can be null
+    title = rawtitle if rawtitle else photoid
     return '{app}_{photoid}_{secret}_o_{title}.{extension}'.format(
         app=general.APPLICATION_NAME, photoid=photoid, secret=secret, title=title, extension=extension)
 
