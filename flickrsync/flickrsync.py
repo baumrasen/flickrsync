@@ -1,12 +1,10 @@
 #!/usr/bin/python3
 import argparse
-import os
 import sys
 import math
 import multiprocessing
 import threading
 import logging
-import traceback
 import datetime
 
 from flickrsync import general
@@ -14,7 +12,6 @@ from flickrsync import local
 from flickrsync.settings import Settings
 from flickrsync.database import Database
 from flickrsync.flickr import Flickr
-from flickrsync.error import Error
 from flickrsync.log import Log
 from flickrsync.helpaction import _HelpAction
 
@@ -202,8 +199,8 @@ def create_photoset_missing_photos_on_local(database, flickr):
         logger.info('No missing photos on local')
 
 def _add_tags_worker(flickr, data):
-    for id, signature in data:
-        flickr.add_tags(id, signature)
+    for photoid, signature in data:
+        flickr.add_tags(photoid, signature)
 
 def _add_tags(flickr, localphotos, dryrun=True):
     logger.info('Adding tags to <{count}> Flickr photos'.format(count=len(localphotos)))
@@ -233,8 +230,8 @@ def _add_tags(flickr, localphotos, dryrun=True):
             thread.join()
 
 def _set_tags_worker(flickr, data):
-    for id, signature in data:
-        flickr.set_tags(id, signature)
+    for photoid, signature in data:
+        flickr.set_tags(photoid, signature)
 
 def delete_tags(database, flickr, stringmatch, dryrun=True, noprompt=False):
     assert stringmatch, 'stringmatch not supplied'
@@ -318,7 +315,7 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
             thread.join()
 
         if _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch):
-            uploaded_count = _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
+            _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
             if identifymissing:
                 create_photoset_missing_photos_on_local(database, flickr)

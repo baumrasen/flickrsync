@@ -72,13 +72,13 @@ def image_worker(data):
             try :
                 datetimeoriginal = img.metadata['exif:DateTimeOriginal']
                 dateflat = general.get_flat_date(datetimeoriginal)
-            except Exception as e :
+            except Exception:
                 logger.warning('DateTimeOriginal not available: %s' % (pathname))
 
             signature = img.signature
             imageerror = None
 
-    except Exception as e:
+    except Exception:
         logger.error('Not a valid picture file: %s' % (pathname))
 
     photo = {
@@ -129,20 +129,20 @@ def _download_image(data):
     except Exception as e:
         logger.error('Failed to download from Flickr: %s, %s' % (url, e))
 
-def _get_flickr_filename(id, secret, title, extension):
-    return '{app}_{id}_{secret}_o_{title}.{extension}'.format(
-        app=general.APPLICATION_NAME, id=id, secret=secret, title=title, extension=extension)
+def _get_flickr_filename(photoid, secret, title, extension):
+    return '{app}_{photoid}_{secret}_o_{title}.{extension}'.format(
+        app=general.APPLICATION_NAME, photoid=photoid, secret=secret, title=title, extension=extension)
 
 def _get_flickr_id_secret_title_extension(filename):
-    id = UNDEFINED
+    photoid = UNDEFINED
     secret = UNDEFINED
     title = UNDEFINED
     extension = UNDEFINED
     try:
-        id, secret, title, extension = re.match('^'+general.APPLICATION_NAME+'_([0-9]+)_([a-z0-9_]+)_o_(.+)\.(.+)', filename).group(1,2,3,4)
-    except AttributeError as e:
+        photoid, secret, title, extension = re.match('^'+general.APPLICATION_NAME+'_([0-9]+)_([a-z0-9_]+)_o_(.+)\.(.+)', filename).group(1,2,3,4)
+    except AttributeError:
         logger.debug('Not found')
 
-    logger.debug('<{filename}>, <{id}>, <{secret}>, <{title}>, <{extension}>'.format(
-        filename=filename, id=id, secret=secret, title=title, extension=extension))
-    return id, secret, title, extension
+    logger.debug('<{filename}>, <{photoid}>, <{secret}>, <{title}>, <{extension}>'.format(
+        filename=filename, photoid=photoid, secret=secret, title=title, extension=extension))
+    return photoid, secret, title, extension

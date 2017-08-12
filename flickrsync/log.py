@@ -19,21 +19,20 @@ class Log:
 
     @staticmethod
     def set_level(level):
-        format = None
+        logformat = None
 
         if level == logging.DEBUG:
-            format = Log.FORMAT_DEBUG
+            logformat = Log.FORMAT_DEBUG
         else:
-            format = Log.FORMAT_INFO
+            logformat = Log.FORMAT_INFO
 
         for handler in logging.root.handlers:
-            handler.setFormatter(logging.Formatter(format))
+            handler.setFormatter(logging.Formatter(logformat))
 
         Log.logger.setLevel(level)
 
     @staticmethod
     def traceback(logger, e):
-        msg = '%s' % e
         formatted_lines = traceback.format_exc().splitlines()
         for l in formatted_lines:
             logger.debug(l)
