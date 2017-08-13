@@ -274,6 +274,8 @@ def delete_tags(database, flickr, stringmatch, dryrun=True, noprompt=False):
 def _tag_matched_flickr_photos(database, flickr, directory, dryrun=True, noprompt=False):
     localphotos = database.select_unmatched_photos_with_flickr_id()
 
+    success = False
+
     if localphotos:
         if noprompt or general.query_yes_no('Do you want to tag <%d> matched pictures found on Flickr' % len(localphotos)):
             try:
@@ -282,9 +284,19 @@ def _tag_matched_flickr_photos(database, flickr, directory, dryrun=True, nopromp
             finally:
                 minuploaddate = database.select_min_upload_date_without_signature()
                 _search_flickr(database, flickr, minuploaddate=minuploaddate)
+                success = True
+
+    else:
+        logger.info('No matched Flickr photos found')
+        success = True
+
+    logger.debug('success <{success}>'.format(success=success))
+    return success
 
 def _download_and_scan_unmatched_flickr_photos(database, directory, dryrun=True, noprompt=False, nodatematch=False):
     flickrphotos = database.select_unmatchable_flickr_photos(nodatematch)
+
+    success = False
 
     if flickrphotos:
         if noprompt or general.query_yes_no('Do you want to download and scan <%d> unmatched pictures from Flickr' % len(flickrphotos)):
@@ -293,8 +305,14 @@ def _download_and_scan_unmatched_flickr_photos(database, directory, dryrun=True,
             local.download_photos(directory=downloaddirectory, flickrphotos=flickrphotos, dryrun=dryrun)
             _search_local(database, downloaddirectory)
 
+            success = True
+
     else:
         logger.info('No unmatched Flickr photos found')
+        success = True
+
+    logger.debug('success <{success}>'.format(success=success))
+    return success
 
 def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=False, nodatematch=False, identifymissing=False):
     if noprompt or general.query_yes_no('Do you want to sync the local file system with Flickr'):
@@ -314,15 +332,15 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
         for thread in threads:
             thread.join()
 
-        _download_and_scan_unmatched_flickr_photos(database, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch)
-        _tag_matched_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
-        _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
+        if _download_and_scan_unmatched_flickr_photos(database, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch):
+            if _tag_matched_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt):
+                _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
-        if identifymissing:
-            create_photoset_missing_photos_on_local(database, flickr)
+                if identifymissing:
+                    create_photoset_missing_photos_on_local(database, flickr)
 
-        elif twoway:
-            _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
+                elif twoway:
+                    _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
 
 def print_usage(parser, settings):
     parser.print_usage()
