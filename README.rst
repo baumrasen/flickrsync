@@ -39,12 +39,13 @@ References
 Setup
 =====
 
-#. Edit the configuration file
+#. Create the configuration file
 
-    - configuration file is created during the pip installation
-    - location will be somewhere in your python library ../flickrsync/etc/config.ini
+    - name the file $HOME/.flickrsync/config.ini
     - add your Flickr username, API Key and API Secret
     - edit your pictures directory as required
+    - a template configuration file can be found somewhere in your python library ../flickrsync/etc/config.ini
+
 
 #. Authenticate the FlickrSync application with Flickr (see usage, below)
 

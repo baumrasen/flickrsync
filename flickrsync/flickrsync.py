@@ -6,6 +6,7 @@ import multiprocessing
 import threading
 import logging
 import datetime
+import os
 
 from flickrsync import general
 from flickrsync import local
@@ -126,7 +127,7 @@ def create_photosets(database, flickr, rootpath, noprompt=False):
 
 def _search_flickr(database, flickr, minuploaddate=-1):
     minuploaddate = minuploaddate if minuploaddate>=0 else (database.select_last_upload_date() + 1)
-    humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime('%Y-%m-%d %H:%M:%S')
+    humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime(general.FLICKR_DATE_FMT)
 
     logger.info('Searching Flickr since the last upload date <%s>. This could take a long time' % humandate)
 
@@ -136,7 +137,7 @@ def _search_flickr(database, flickr, minuploaddate=-1):
         logger.info('Found new photos on Flickr <%d>' % len(photos))
         database.insert_flickr_photos(photos)
     else:
-        humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime('%Y-%m-%d %H:%M:%S')
+        humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime(general.FLICKR_DATE_FMT)
         logger.info('No new photos found on Flickr since the last upload date')
 
 def rebase_flickr(database, flickr, noprompt=False):
@@ -187,7 +188,7 @@ def create_photoset_missing_photos_on_local(database, flickr):
             idlist.append(row['id'])
 
         photoscsv = general.list_to_csv(idlist)
-        photosetname = '{name} {date}'.format(name=PHOTOSET_MISSING, date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        photosetname = '{name} {date}'.format(name=PHOTOSET_MISSING, date=datetime.datetime.now().strftime(general.FLICKR_DATE_FMT))
         primaryphotoid = flickrphotos[0]['Id']
         photosetid = flickr.photoset_create(photosetname, primaryphotoid)
 
@@ -211,7 +212,7 @@ def _add_tags(flickr, localphotos, dryrun=True):
         data = []
 
         for localphoto in localphotos:
-            data.append((localphoto['flickrid'], flickr.get_signature_tag(localphoto['signature'])))
+            data.append((localphoto['flickrid'], Flickr.get_signature_tag(localphoto['signature'])))
 
         chunksize = math.ceil(len(data)/THREAD_COUNT_TAGS)
 
@@ -270,31 +271,30 @@ def delete_tags(database, flickr, stringmatch, dryrun=True, noprompt=False):
     else:
         logger.info('No matching Flickr tags found')
 
-def _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=True, noprompt=False, nodatematch=False):
-    success = False
+def _tag_matched_flickr_photos(database, flickr, directory, dryrun=True, noprompt=False):
+    localphotos = database.select_unmatched_photos_with_flickr_id()
+
+    if localphotos:
+        if noprompt or general.query_yes_no('Do you want to tag <%d> matched pictures found on Flickr' % len(localphotos)):
+            try:
+                _add_tags(flickr, localphotos, dryrun=dryrun)
+
+            finally:
+                minuploaddate = database.select_min_upload_date_without_signature()
+                _search_flickr(database, flickr, minuploaddate=minuploaddate)
+
+def _download_and_scan_unmatched_flickr_photos(database, directory, dryrun=True, noprompt=False, nodatematch=False):
     flickrphotos = database.select_unmatchable_flickr_photos(nodatematch)
 
     if flickrphotos:
-        if noprompt or general.query_yes_no('Do you want to download and scan <%d> unmatchable pictures from Flickr' % len(flickrphotos)):
-            local.download_photos(directory=directory, flickrphotos=flickrphotos, dryrun=dryrun)
-            _search_local(database, directory)
+        if noprompt or general.query_yes_no('Do you want to download and scan <%d> unmatched pictures from Flickr' % len(flickrphotos)):
 
-            localphotos = database.select_unmatched_photos_with_flickr_id()
+            downloaddirectory = os.path.join(directory, general.APPLICATION_NAME)
+            local.download_photos(directory=downloaddirectory, flickrphotos=flickrphotos, dryrun=dryrun)
+            _search_local(database, downloaddirectory)
 
-            if localphotos:
-                try:
-                    _add_tags(flickr, localphotos, dryrun=dryrun)
-
-                finally:
-                    minuploaddate = database.select_min_upload_date_without_signature()
-                    _search_flickr(database, flickr, minuploaddate=minuploaddate)
-                    success = True
     else:
-        logger.info('No unmatchable Flickr photos found')
-        success = True
-
-    logger.info('Scan<{success}>'.format(success='success' if success else 'aborted'))
-    return success
+        logger.info('No unmatched Flickr photos found')
 
 def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=False, nodatematch=False, identifymissing=False):
     if noprompt or general.query_yes_no('Do you want to sync the local file system with Flickr'):
@@ -314,14 +314,21 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
         for thread in threads:
             thread.join()
 
-        if _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch):
-            _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
+        _download_and_scan_unmatched_flickr_photos(database, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch)
+        _tag_matched_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
+        _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
-            if identifymissing:
-                create_photoset_missing_photos_on_local(database, flickr)
+        if identifymissing:
+            create_photoset_missing_photos_on_local(database, flickr)
 
-            elif twoway:
-                _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
+        elif twoway:
+            _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
+
+def print_usage(parser, settings):
+    parser.print_usage()
+    print()
+    print('Config file location <%s>' % settings.configname)
+    sys.exit(0)
 
 def main():
     try:
@@ -370,10 +377,7 @@ def main():
         settings = Settings(args)
 
         if len(sys.argv) < 2:
-            parser.print_usage()
-            print()
-            print('Config file location <%s>' % settings.configname)
-            sys.exit(0)
+            print_usage(parser, settings)
 
         database = Database(settings.database)
         flickr = Flickr(settings.api_key, settings.api_secret, settings.username)
@@ -399,6 +403,9 @@ def main():
 
         elif args.actionname == 'rebase':
             rebase_flickr(database, flickr, noprompt=args.noprompt)
+
+        else:
+            print_usage(parser, settings)
 
         database.con.close()
 

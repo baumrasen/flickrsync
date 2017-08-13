@@ -72,7 +72,7 @@ class Flickr:
                         , 'tags'                 : photo.get('tags')
                         , 'machine_tags'         : photo.get('machine_tags')
                         , 'signature'            : self.__get_signature(photo.get('machine_tags'))
-                        , 'shortname'            : general.get_short_name(photo.get('title'))
+                        , 'shortname'            : self.__get_short_name(photo)
                         , 'dateflat'             : general.get_flat_date(photo.get('datetaken'))
                     }
                     photos.append(a_photo)
@@ -122,7 +122,7 @@ class Flickr:
         for aphoto in uploadphotos:
             pathname = os.path.join(aphoto['directory'], aphoto['filename'])
             tag = self.get_signature_tag(aphoto['signature'])
-            title = general.get_flickr_title(aphoto['filename'], aphoto['flickrtitle'])
+            title = general.get_title(aphoto['filename'])
             logger.info('{title}, {pathname}'.format(title=title, pathname=pathname))
 
             try:
@@ -215,10 +215,6 @@ class Flickr:
         except flickrapi.exceptions.FlickrError as e:
             logger.error(e)
 
-    @staticmethod
-    def get_signature_tag(signature):
-        return '{machine_tag_signature}="{signature}"'.format(machine_tag_signature=Flickr.MACHINE_TAG_SIGNATURE, signature=signature)
-
     def __wait_until_uploading_complete(self, tickets):
         completed = False
         notcomplete = list(tickets)
@@ -240,6 +236,10 @@ class Flickr:
                 completed = True
 
     @staticmethod
+    def get_signature_tag(signature):
+        return '{machine_tag_signature}="{signature}"'.format(machine_tag_signature=Flickr.MACHINE_TAG_SIGNATURE, signature=signature)
+
+    @staticmethod
     def __get_signature(machinetags):
         thesignature = None
         m = re.search('%s=([0-9a-f]+)( |$)' % Flickr.MACHINE_TAG_SIGNATURE, machinetags, re.IGNORECASE)
@@ -248,3 +248,8 @@ class Flickr:
             thesignature = m.group(1)
 
         return thesignature
+
+    @staticmethod
+    def __get_short_name(photo):
+        temp = general.get_flickr_title(photo.get('title'), photo.get('originalsecret'))
+        return general.get_short_name(temp)

@@ -5,6 +5,7 @@ import re
 from flickrsync.log import Log
 
 APPLICATION_NAME = 'flickrsync'
+FLICKR_DATE_FMT = '%Y-%m-%d %H:%M:%S'
 
 logger = logging.getLogger(Log.NAME)
 
@@ -14,14 +15,19 @@ logger = logging.getLogger(Log.NAME)
 def get_flat_date(datestring):
     return re.sub('[^0-9]', '', datestring)
 
-# from photo title remove extension (if exists)
+# remove extension (if exists)
 # this is because Flickr does not always maintain the file extension during upload
 # as it is dependent on the upload client used
-def get_short_name(filename, flickrtitle=None):
-    return flickrtitle if flickrtitle else os.path.splitext(filename.lower())[0]
+def get_title(title):
+    return os.path.splitext(title)[0]
 
-def get_flickr_title(filename, flickrtitle):
-    return flickrtitle if flickrtitle else os.path.splitext(filename)[0]
+# title could be null so use something unique instead
+def get_flickr_title(title, secret):
+    return title if title else secret
+
+# remove any file extensions and make lower case
+def get_short_name(title):
+    return get_title(title).lower()
 
 def list_from_rows(rows):
     a_list = []

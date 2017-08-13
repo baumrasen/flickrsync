@@ -9,7 +9,7 @@ from wand.image import Image
 from flickrsync import general
 from flickrsync.log import Log
 
-PICTURE_TYPES = ('.jpg', '.png', '.gif')
+PICTURE_TYPES = ('jpg', 'png', 'gif')
 DELETED = '1'
 UNDEFINED = None
 UNDELETED = None
@@ -25,7 +25,7 @@ def search_photos(picturepath):
 
     for directory, __dirs, files in os.walk(picturepath):
         for filename in files:
-            if filename.lower().endswith(PICTURE_TYPES) :
+            if re.fullmatch('|'.join(PICTURE_TYPES), os.path.splitext(filename)[1][1:], re.IGNORECASE):
                 newsearch.append({
                     'directory' : directory
                    , 'filename'  : filename
@@ -66,9 +66,9 @@ def image_worker(data):
     dateflat = UNDEFINED
     imageerror = IMAGE_ERROR
     pathname = os.path.join(directory, filename)
-    shortname = general.get_short_name(filename, flickrtitle)
+    shortname = _get_short_name(flickrid, flickrsecret, flickrtitle, filename)
 
-    try :
+    try:
         with Image(filename = pathname) as img:
             try :
                 datetimeoriginal = img.metadata['exif:DateTimeOriginal']
@@ -110,6 +110,9 @@ def download_photos(directory, flickrphotos, dryrun=True):
     if dryrun:
         logger.info('Dry run, not downloading')
     else:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
         with multiprocessing.Pool(processes=10) as pool:
             pool.map(_download_image, iterable=downloadphotos)
 
@@ -130,10 +133,8 @@ def _download_image(data):
     except Exception as e:
         logger.error('Failed to download from Flickr: %s, %s' % (url, e))
 
-def _get_flickr_filename(photoid, secret, rawtitle, extension):
-    # the flickr title can be null
-    title = rawtitle if rawtitle else photoid
-    return '{app}_{photoid}_{secret}_o_{title}.{extension}'.format(
+def _get_flickr_filename(photoid, secret, title, extension):
+    return '{app}_{photoid}_{secret}_{title}.{extension}'.format(
         app=general.APPLICATION_NAME, photoid=photoid, secret=secret, title=title, extension=extension)
 
 def _get_flickr_id_secret_title_extension(filename):
@@ -142,10 +143,17 @@ def _get_flickr_id_secret_title_extension(filename):
     title = UNDEFINED
     extension = UNDEFINED
     try:
-        photoid, secret, title, extension = re.match('^'+general.APPLICATION_NAME+'_([0-9]+)_([a-z0-9_]+)_o_(.+)\.(.+)', filename).group(1,2,3,4)
+        # the flickr title can be null
+        photoid, secret, title, extension = re.fullmatch('^' + general.APPLICATION_NAME
+            + '_([0-9]+)_([a-z0-9]+)_(.*)\.(' + '|'.join(PICTURE_TYPES) + ')', filename, re.IGNORECASE).group(1,2,3,4)
+
     except AttributeError:
         logger.debug('Not found')
 
     logger.debug('<{filename}>, <{photoid}>, <{secret}>, <{title}>, <{extension}>'.format(
         filename=filename, photoid=photoid, secret=secret, title=title, extension=extension))
     return photoid, secret, title, extension
+
+def _get_short_name(flickrid, flickrsecret, flickrtitle, filename):
+    temp = general.get_flickr_title(flickrtitle, flickrsecret) if flickrid else filename
+    return general.get_short_name(temp)
