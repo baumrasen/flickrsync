@@ -212,7 +212,7 @@ def _add_tags(flickr, localphotos, dryrun=True):
         data = []
 
         for localphoto in localphotos:
-            data.append((localphoto['flickrid'], flickr.get_signature_tag(localphoto['signature'])))
+            data.append((localphoto['flickrid'], Flickr.get_signature_tag(localphoto['signature'])))
 
         chunksize = math.ceil(len(data)/THREAD_COUNT_TAGS)
 

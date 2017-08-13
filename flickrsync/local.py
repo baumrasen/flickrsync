@@ -66,9 +66,9 @@ def image_worker(data):
     dateflat = UNDEFINED
     imageerror = IMAGE_ERROR
     pathname = os.path.join(directory, filename)
-    shortname = general.get_short_name(filename, flickrtitle)
+    shortname = _get_short_name(flickrid, flickrsecret, flickrtitle, filename)
 
-    try :
+    try:
         with Image(filename = pathname) as img:
             try :
                 datetimeoriginal = img.metadata['exif:DateTimeOriginal']
@@ -153,3 +153,7 @@ def _get_flickr_id_secret_title_extension(filename):
     logger.debug('<{filename}>, <{photoid}>, <{secret}>, <{title}>, <{extension}>'.format(
         filename=filename, photoid=photoid, secret=secret, title=title, extension=extension))
     return photoid, secret, title, extension
+
+def _get_short_name(flickrid, flickrsecret, flickrtitle, filename):
+    temp = general.get_flickr_title(flickrtitle, flickrsecret) if flickrid else filename
+    return general.get_short_name(temp)
