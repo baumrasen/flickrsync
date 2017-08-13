@@ -6,6 +6,7 @@ import multiprocessing
 import threading
 import logging
 import datetime
+import os
 
 from flickrsync import general
 from flickrsync import local
@@ -276,8 +277,10 @@ def _download_and_scan_unmatchable_flickr_photos(database, flickr, directory, dr
 
     if flickrphotos:
         if noprompt or general.query_yes_no('Do you want to download and scan <%d> unmatchable pictures from Flickr' % len(flickrphotos)):
-            local.download_photos(directory=directory, flickrphotos=flickrphotos, dryrun=dryrun)
-            _search_local(database, directory)
+
+            downloaddirectory = os.path.join(directory, general.APPLICATION_NAME)
+            local.download_photos(directory=downloaddirectory, flickrphotos=flickrphotos, dryrun=dryrun)
+            _search_local(database, downloaddirectory)
 
             localphotos = database.select_unmatched_photos_with_flickr_id()
 
@@ -322,6 +325,12 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
 
             elif twoway:
                 _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
+
+def print_usage(parser, settings):
+    parser.print_usage()
+    print()
+    print('Config file location <%s>' % settings.configname)
+    sys.exit(0)
 
 def main():
     try:
@@ -370,10 +379,7 @@ def main():
         settings = Settings(args)
 
         if len(sys.argv) < 2:
-            parser.print_usage()
-            print()
-            print('Config file location <%s>' % settings.configname)
-            sys.exit(0)
+            print_usage(parser, settings)
 
         database = Database(settings.database)
         flickr = Flickr(settings.api_key, settings.api_secret, settings.username)
@@ -399,6 +405,9 @@ def main():
 
         elif args.actionname == 'rebase':
             rebase_flickr(database, flickr, noprompt=args.noprompt)
+
+        else:
+            print_usage(parser, settings)
 
         database.con.close()
 

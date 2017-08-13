@@ -5,7 +5,6 @@ import re
 from flickrsync.log import Log
 
 APPLICATION_NAME = 'flickrsync'
-
 logger = logging.getLogger(Log.NAME)
 
 # Flickr stores dates in MySQL format = 2004-11-29 16:01:26
