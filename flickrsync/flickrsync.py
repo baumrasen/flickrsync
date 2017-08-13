@@ -127,7 +127,7 @@ def create_photosets(database, flickr, rootpath, noprompt=False):
 
 def _search_flickr(database, flickr, minuploaddate=-1):
     minuploaddate = minuploaddate if minuploaddate>=0 else (database.select_last_upload_date() + 1)
-    humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime('%Y-%m-%d %H:%M:%S')
+    humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime(general.FLICKR_DATE_FMT)
 
     logger.info('Searching Flickr since the last upload date <%s>. This could take a long time' % humandate)
 
@@ -137,7 +137,7 @@ def _search_flickr(database, flickr, minuploaddate=-1):
         logger.info('Found new photos on Flickr <%d>' % len(photos))
         database.insert_flickr_photos(photos)
     else:
-        humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime('%Y-%m-%d %H:%M:%S')
+        humandate = datetime.datetime.fromtimestamp(minuploaddate).strftime(general.FLICKR_DATE_FMT)
         logger.info('No new photos found on Flickr since the last upload date')
 
 def rebase_flickr(database, flickr, noprompt=False):
@@ -188,7 +188,7 @@ def create_photoset_missing_photos_on_local(database, flickr):
             idlist.append(row['id'])
 
         photoscsv = general.list_to_csv(idlist)
-        photosetname = '{name} {date}'.format(name=PHOTOSET_MISSING, date=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        photosetname = '{name} {date}'.format(name=PHOTOSET_MISSING, date=datetime.datetime.now().strftime(general.FLICKR_DATE_FMT))
         primaryphotoid = flickrphotos[0]['Id']
         photosetid = flickr.photoset_create(photosetname, primaryphotoid)
 
