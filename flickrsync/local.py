@@ -9,7 +9,7 @@ from wand.image import Image
 from flickrsync import general
 from flickrsync.log import Log
 
-PICTURE_TYPES = ('jpg', 'png', 'gif')
+PICTURE_TYPES = ('jpg', 'jpeg', 'png', 'gif')
 DELETED = '1'
 UNDEFINED = None
 UNDELETED = None
