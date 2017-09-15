@@ -24,6 +24,7 @@ setup(
     ],
     keywords='flickr upload backup photo sync',
     zip_safe=False,
-    include_package_data=True,
-    package_data={'flickrsync': ['etc/config.ini']}
+    package_data={
+        'flickrsync': ['etc/config.ini']
+    }
 )
