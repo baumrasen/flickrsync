@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='flickrsync',
-    version='0.1.0rc17',
+    version='0.1.0',
     description='A command line tool to synchronise pictures between the local file system and Flickr',
     url='https://github.com/danchal/flickrsync',
     author='Dan Chal',
@@ -24,6 +24,7 @@ setup(
     ],
     keywords='flickr upload backup photo sync',
     zip_safe=False,
-    include_package_data=True,
-    package_data={'flickrsync': ['etc/config.ini']}
+    package_data={
+        'flickrsync': ['etc/config.ini']
+    }
 )
