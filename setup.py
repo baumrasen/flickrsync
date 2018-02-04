@@ -16,7 +16,7 @@ setup(
     ],
     scripts=['bin/flickrsync'],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Topic :: Utilities',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
