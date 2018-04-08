@@ -126,7 +126,8 @@ class Database:
         with self.con:
             self.con.execute("""CREATE TEMPORARY TABLE Search(
                                         Directory TEXT,
-                                        FileName TEXT)""")
+                                        FileName TEXT,
+                                        Type TEXT)""")
             logger.debug('table created')
 
             self.con.execute("CREATE INDEX idx_s1 ON Search(Directory, FileName)")
@@ -186,9 +187,9 @@ class Database:
         logger.debug('records.count<%d>' % len(records))
 
         sqlstring = ("""INSERT INTO Search(
-                            Directory, FileName)
+                            Directory, FileName, Type)
                        VALUES(
-                           :directory, :filename)""")
+                           :directory, :filename, :type)""")
 
         with self.con:
             cur = self.con.executemany(sqlstring, records)
@@ -486,7 +487,7 @@ class Database:
 
 
     def __select_new_files(self):
-        sqlstring = ("""SELECT Directory, Filename
+        sqlstring = ("""SELECT Directory, Filename, Type
                      FROM Search s
                      WHERE NOT EXISTS(
                                    SELECT 1

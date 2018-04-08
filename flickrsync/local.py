@@ -4,16 +4,20 @@ import re
 import urllib
 import shutil
 import multiprocessing
+import hashlib
 from wand.image import Image
 
 from flickrsync import general
 from flickrsync.log import Log
 
-PICTURE_TYPES = ('jpg', 'jpeg', 'png', 'gif')
+PICTURE_TYPES = {'jpg', 'jpeg', 'png', 'gif'}
+VIDEO_TYPES = {'mp4', 'avi', 'wmv', 'mov', 'mpeg', '3gp' 'm2ts', 'ogg', 'ogv'}
 DELETED = '1'
 UNDEFINED = None
 UNDELETED = None
 IMAGE_ERROR = 1
+PICTURE_TYPE = 'picture'
+VIDEO_TYPE = 'video'
 
 logger = logging.getLogger(Log.NAME)
 
@@ -29,7 +33,16 @@ def search_photos(picturepath):
                 newsearch.append({
                     'directory' : directory
                    , 'filename'  : filename
+                   , 'type'  : PICTURE_TYPE
                 })
+
+            elif re.fullmatch('|'.join(VIDEO_TYPES), os.path.splitext(filename)[1][1:], re.IGNORECASE):
+                newsearch.append({
+                    'directory' : directory
+                   , 'filename'  : filename
+                   , 'type'  : VIDEO_TYPE
+                })
+                logger.debug("newsearch<%s>", newsearch)
 
     logger.debug("Number of photos found: %d" % len(newsearch))
 
@@ -54,10 +67,18 @@ def search_deleted(allfiles):
 
     return deletedfiles
 
+def get_video_signature(pathname):
+    hash_md5 = hashlib.md5()
+    with open(pathname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
 def image_worker(data):
-    directory, filename = data
+    directory, filename, file_type = data
     assert directory, "directory not supplied<%s>" % directory
     assert filename, "filename not supplied<%s>" % filename
+    assert file_type, "type not supplied<%s>" % file_type
 
     flickrid, flickrsecret, flickrtitle, flickrextension = _get_flickr_id_secret_title_extension(filename)
 
@@ -68,19 +89,28 @@ def image_worker(data):
     pathname = os.path.join(directory, filename)
     shortname = _get_short_name(flickrid, flickrsecret, flickrtitle, filename)
 
-    try:
-        with Image(filename = pathname) as img:
-            try :
-                datetimeoriginal = img.metadata['exif:DateTimeOriginal']
-                dateflat = general.get_flat_date(datetimeoriginal)
-            except Exception:
-                logger.warning('DateTimeOriginal not available: %s' % (pathname))
+    if file_type == PICTURE_TYPE:
+        try:
+            with Image(filename = pathname) as img:
+                try :
+                    datetimeoriginal = img.metadata['exif:DateTimeOriginal']
+                    dateflat = general.get_flat_date(datetimeoriginal)
+                except Exception:
+                    logger.warning('DateTimeOriginal not available: %s' % (pathname))
 
-            signature = img.signature
-            imageerror = None
+                signature = img.signature
+                imageerror = None
 
-    except Exception:
-        logger.error('Not a valid picture file: %s' % (pathname))
+        except Exception:
+            logger.error('Not a valid picture file: %s' % (pathname))
+
+    elif file_type == VIDEO_TYPE:
+        signature = get_video_signature(pathname)
+        imageerror = None
+
+    else:
+        # this should never happen
+        logger.error('Not a valid flickr file: %s' % (pathname))
 
     photo = {
           'directory'        : directory
@@ -145,7 +175,7 @@ def _get_flickr_id_secret_title_extension(filename):
     try:
         # the flickr title can be null
         photoid, secret, title, extension = re.fullmatch('^' + general.APPLICATION_NAME
-            + '_([0-9]+)_([a-z0-9]+)_(.*)\.(' + '|'.join(PICTURE_TYPES) + ')', filename, re.IGNORECASE).group(1,2,3,4)
+            + '_([0-9]+)_([a-z0-9]+)_(.*)\.(' + '|'.join(PICTURE_TYPES) + '|'.join(VIDEO_TYPES) + ')', filename, re.IGNORECASE).group(1,2,3,4)
 
     except AttributeError:
         logger.debug('Not found')
