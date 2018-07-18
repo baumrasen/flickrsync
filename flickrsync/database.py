@@ -261,7 +261,8 @@ class Database:
                         AND l.Signature NOT IN(
                             SELECT Signature
                             FROM LocalPhotos pl
-                            WHERE EXISTS(
+                            WHERE Signature IS NOT NULL
+                            AND EXISTS(
                                 SELECT 1
                                 FROM FlickrPhotos pr
                                 WHERE pr.Signature = pl.Signature
@@ -347,8 +348,7 @@ class Database:
                             OR NOT EXISTS(
                                 SELECT 1
                                 FROM LocalPhotos pl
-                                WHERE Signature IS NOT NULL
-                                AND Deleted IS NULL
+                                WHERE Deleted IS NULL
                                 AND pl.DateFlat = pr.DateFlat
                                 AND pl.ShortName = pr.ShortName
                                 AND pr.DateTakenUnknown = 0
@@ -357,8 +357,7 @@ class Database:
                         AND NOT EXISTS(
                             SELECT 1
                             FROM LocalPhotos pl
-                            WHERE Signature IS NOT NULL
-                            AND Deleted IS NULL
+                            WHERE Deleted IS NULL
                             AND pl.FlickrId = pr.Id
                             AND pl.FlickrSecret = pr.OriginalSecret
                         )""")
