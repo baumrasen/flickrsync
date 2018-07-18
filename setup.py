@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='flickrsync',
-    version='0.1.0',
+    version='0.1.1',
     description='A command line tool to synchronise pictures between the local file system and Flickr',
     url='https://github.com/danchal/flickrsync',
     author='Dan Chal',
@@ -16,7 +16,7 @@ setup(
     ],
     scripts=['bin/flickrsync'],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Topic :: Utilities',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',

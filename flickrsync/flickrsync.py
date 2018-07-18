@@ -333,19 +333,20 @@ def do_sync(database, flickr, directory, twoway=False, dryrun=True, noprompt=Fal
             thread.join()
 
         if _download_and_scan_unmatched_flickr_photos(database, directory, dryrun=dryrun, noprompt=noprompt, nodatematch=nodatematch):
-            if _tag_matched_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt):
-                _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
+            _tag_matched_flickr_photos(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
+            _do_upload(database, flickr, directory, dryrun=dryrun, noprompt=noprompt)
 
-                if identifymissing:
-                    create_photoset_missing_photos_on_local(database, flickr)
+            if identifymissing:
+                create_photoset_missing_photos_on_local(database, flickr)
 
-                elif twoway:
-                    _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
+            elif twoway:
+                _download_missing_photos_from_flickr(database, directory, dryrun=dryrun, noprompt=noprompt)
 
 def print_usage(parser, settings):
     parser.print_usage()
     print()
     print('Config file location <%s>' % settings.configname)
+    print('Source file location <%s>' % os.path.dirname(os.path.abspath(__file__)))
     sys.exit(0)
 
 def main():
