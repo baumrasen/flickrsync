@@ -22,7 +22,7 @@ class Database:
 
         self.__create_tables_if_not_exist()
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.do_commit()
         self.con.close()
 
