@@ -366,7 +366,7 @@ def main():
 
         subparsers = parser.add_subparsers(dest='actionname')
 
-        parser_auth = subparsers.add_parser('auth', help = 'authenticate with Flickr', add_help=False)
+        subparsers.add_parser('auth', help = 'authenticate with Flickr', add_help=False)
 
         parser_sync = subparsers.add_parser('sync', help = 'perform a one way sync from the local file system to Flickr', add_help=False)
         parser_sync.add_argument('--nodatematch', help = 'during sync, do not use dates to match', action = 'store_true')
@@ -377,14 +377,14 @@ def main():
         parser_sync2.add_argument('--nodatematch', help = 'during sync, do not use dates to match', action = 'store_true')
         parser_sync2.add_argument('--dryrun', help = 'do not actually upload/download, perform a dry run', action = 'store_true')
 
-        parser_photosets = subparsers.add_parser('photosets', help = 'create Flickr photosets based upon the local file system', add_help=False)
+        subparsers.add_parser('photosets', help = 'create Flickr photosets based upon the local file system', add_help=False)
 
         parser_deletetags = subparsers.add_parser('deletetags', help = 'delete all tags containing STRING', add_help=False)
         parser_deletetags.add_argument('STRING', type = str)
         parser_deletetags.add_argument('--dryrun', help = 'do not actually deleted Flickr tags, perform a dry run', action = 'store_true')
 
-        parser_delete = subparsers.add_parser('delete', help = 'delete the database tables', add_help=False)
-        parser_rebase = subparsers.add_parser('rebase', help = 'rebase the Flickr database table', add_help=False)
+        subparsers.add_parser('delete', help = 'delete the database tables', add_help=False)
+        subparsers.add_parser('rebase', help = 'rebase the Flickr database table', add_help=False)
 
         args = parser.parse_args()
 
